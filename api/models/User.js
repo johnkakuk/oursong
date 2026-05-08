@@ -1,5 +1,5 @@
 const mongoose = require('mongoose')
-const bcrypt = require('bcrypt-nodejs')
+const bcrypt = require('bcryptjs')
 
 function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -17,12 +17,12 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
     },
-    created_at: {
-        type: Date,
-        required: true,
-        default: Date.now
-    }
-})
+    spotifyId: {
+        type: String,
+        unique: true,
+        sparse: true // Since two null values would collide on unique index
+    },
+}, { timestamps: true })
 
 userSchema.pre('save', function(next) {
     const user = this;

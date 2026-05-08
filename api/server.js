@@ -4,15 +4,19 @@ const mongoose = require('mongoose');
 const passport = require('passport');
 const path = require('path');
 const cors = require('cors');
+const fileUpload = require('express-fileupload');
 
 const app = express();
 app.use(cors());
+app.use(fileUpload());
 
 const PORT = process.env.PORT || 8000;
 
-const cardRouter = require('./routes/cards')
-const deckRouter = require('./routes/decks')
-const authRouter = require('./routes/auth')
+const songRouter      = require('./routes/songs')
+const memoryRouter    = require('./routes/memories')
+const peopleRouter    = require('./routes/people')
+const localSongRouter = require('./routes/localSongs')
+const authRouter      = require('./routes/auth')
 require('./services/passport')
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -24,9 +28,13 @@ db.once('open', () => console.log("Database Connection Established"))
 
 app.use(express.json())
 app.use(passport.initialize())
-app.use('/api/v1/cards', cardRouter)
-app.use('/api/v1/decks', deckRouter)
-app.use('/api/v1/auth', authRouter)
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }))
+
+app.use('/api/v1/songs',       songRouter)
+app.use('/api/v1/memories',     memoryRouter)
+app.use('/api/v1/people',      peopleRouter)
+app.use('/api/v1/local-songs', localSongRouter)
+app.use('/api/v1/auth',        authRouter)
 
 // Look for static build
 app.use(express.static(path.join(__dirname, '../reactjs/build')));
