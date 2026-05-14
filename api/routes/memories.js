@@ -10,10 +10,10 @@ const protectedRoute = passport.authenticate('jwt', { session: false })
 // router.get('/shared/:shareToken', memoryCtlr.readShared)
 
 // Protected routes
-router.get('/',      protectedRoute, memoryCtlr.read)
-router.get('/:id',   protectedRoute, memoryCtlr.readOne)
-router.post('/',     protectedRoute, uploadMedia, memoryCtlr.create)
-router.put('/:id',   protectedRoute, memoryCtlr.update)
+router.get('/',       protectedRoute, memoryCtlr.read)
+router.get('/:id',    protectedRoute, memoryCtlr.readOne)
+router.post('/',      protectedRoute, uploadMedia, memoryCtlr.create)
+router.put('/:id',    protectedRoute, memoryCtlr.update)
 router.delete('/:id', protectedRoute, memoryCtlr.remove)
 
 module.exports = router

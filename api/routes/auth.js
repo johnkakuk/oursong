@@ -3,12 +3,25 @@ const router = express.Router();
 const passport = require('passport');
 const passportService = require('../services/passport')
 
-const requireLogin = passport.authenticate('local', { session: false })
+// const requireLogin = passport.authenticate('local', { session: false })
 
 const authentication_controller = require('../controllers/authentication_controller')
 
-router.post('/signup', authentication_controller.signup)
+// Deprecated email signin stuff
+// router.post('/signup', authentication_controller.signup)
+// router.post('/signin', requireLogin, authentication_controller.signin)
 
-router.post('/signin', requireLogin, authentication_controller.signin)
+// Spotify OAuth — redirect user to Spotify's auth page
+router.get('/spotify', passport.authenticate('spotify', {
+    scope: ['user-read-email', 'user-read-private', 'streaming'],
+    session: false
+}))
+
+// Spotify OAuth — Spotify redirects here after user approves
+router.get(
+    '/spotify/callback',
+    passport.authenticate('spotify', { session: false, failureRedirect: '/' }),
+    authentication_controller.spotifyCallback
+)
 
 module.exports = router;

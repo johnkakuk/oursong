@@ -10,34 +10,41 @@ const tokenForUser = user => {
     }, config.secret)
 }
 
-exports.signin = async (req, res, next) => {
-    const user = req.user
-    res.send({ token: tokenForUser(user), user_id: user._id })
+// Called after successful Spotify OAuth — issues JWT and redirects to React app
+exports.spotifyCallback = (req, res) => {
+    const token = tokenForUser(req.user)
+    res.redirect(`${process.env.SPOTIFY_FRONTEND_REDIRECT}?token=${token}`)
 }
 
-exports.signup = async (req, res, next) => {
-    const { email, password } = req.body
+// Deprecated email-based signin/signup stuff
+// exports.signin = async (req, res, next) => {
+//     const user = req.user
+//     res.send({ token: tokenForUser(user), user_id: user._id })
+// }
 
-    if(!email || !password) {
-        return res.status(422).json({ error: "Please provide your email and password" })
-    }
-
-    try {
-        const userExists = await User.findOne({ email: email })
-
-        if(userExists) {
-            return res.status(422).json({ error: "Email already in use" })
-        }
-
-        const user = new User({
-            email: email,
-            password: password
-        })
-
-        await user.save()
-
-        res.status(201).json({ user_id: user._id, token: tokenForUser(user) })
-    } catch(error) {
-        return next(error)
-    }
-}
+// exports.signup = async (req, res, next) => {
+//     const { email, password } = req.body
+//
+//     if(!email || !password) {
+//         return res.status(422).json({ error: "Please provide your email and password" })
+//     }
+//
+//     try {
+//         const userExists = await User.findOne({ email: email })
+//
+//         if(userExists) {
+//             return res.status(422).json({ error: "Email already in use" })
+//         }
+//
+//         const user = new User({
+//             email: email,
+//             password: password
+//         })
+//
+//         await user.save()
+//
+//         res.status(201).json({ user_id: user._id, token: tokenForUser(user) })
+//     } catch(error) {
+//         return next(error)
+//     }
+// }
