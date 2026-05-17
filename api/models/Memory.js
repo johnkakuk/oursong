@@ -17,10 +17,22 @@ const memorySchema = new mongoose.Schema({
     mediaUrl: { // For photo/video posts
         type: String,
     },
+    thumbnailUrl: { // Pre-generated poster for uploaded videos
+        type: String,
+        default: null
+    },
     people: [{ // Associated people
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Person'
     }],
+    bgColor: { // Hex color for text-type memory backgrounds
+        type: String,
+        default: null
+    },
+    backgroundImageUrl: { // Optional photo behind text-type memories
+        type: String,
+        default: null
+    },
 }, { timestamps: true })
 
 module.exports = mongoose.model('Memory', memorySchema)

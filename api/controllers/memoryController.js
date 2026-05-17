@@ -4,6 +4,13 @@ const create = async (req, res) => {
     try {
         const payload = { ...req.body }
         if (req.uploadedMediaPath) payload.mediaUrl = req.uploadedMediaPath
+        if (req.uploadedThumbnailPath) payload.thumbnailUrl = req.uploadedThumbnailPath
+        if (req.uploadedBgImagePath) payload.backgroundImageUrl = req.uploadedBgImagePath
+
+        // FormData sends people as a string (1 person) or array (2+) — normalize to array
+        if (payload.people && !Array.isArray(payload.people)) {
+            payload.people = [payload.people]
+        }
 
         const memory = await Memory.create(payload)
         res.status(201).json(memory)
@@ -16,7 +23,7 @@ const create = async (req, res) => {
 const read = async (req, res) => {
     try {
         const filter = req.query.songId ? { songId: req.query.songId } : {}
-        const memories = await Memory.find(filter).populate('people')
+        const memories = await Memory.find(filter).populate('people').populate('songId')
         res.status(200).json(memories)
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -35,9 +42,14 @@ const readOne = async (req, res) => {
 
 const update = async (req, res) => {
     try {
+        const updates = { ...req.body }
+        if (req.uploadedMediaPath) updates.mediaUrl = req.uploadedMediaPath
+        if (req.uploadedThumbnailPath) updates.thumbnailUrl = req.uploadedThumbnailPath
+        if (req.uploadedBgImagePath) updates.backgroundImageUrl = req.uploadedBgImagePath
+
         const memory = await Memory.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            updates,
             { new: true, runValidators: true }
         )
         if (!memory) return res.status(404).json({ error: 'Memory not found' })

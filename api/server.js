@@ -44,6 +44,9 @@ app.use('/api/v1/local-songs', localSongRouter)
 app.use('/api/v1/spotify',    spotifyRouter)
 app.use('/api/v1/auth',       authRouter)
 
+// Serve uploaded media files
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')))
+
 // Look for static build
 app.use(express.static(path.join(__dirname, '../reactjs/build')));
 

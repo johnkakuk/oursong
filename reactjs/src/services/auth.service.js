@@ -1,47 +1,30 @@
-import axios from 'axios'
+import api from './api'
 
-import API_BASE from './api.config'
+const STORAGE_KEY = 'oursong_user'
 
-const API_URL = `${API_BASE}/auth`
-
-const signup = (email, password) => {
-    return axios.post(`${API_URL}/signup`, {
-        email, password
-    })
-    .then(response => {
-        console.log(response)
-        if (response.data.token) {
-            localStorage.setItem("user", JSON.stringify(response.data))
-        }
-        return response.data
-    })
+// Called from AuthCallback after Spotify redirect — stores the JWT
+const handleCallback = (token) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ token }))
 }
 
-const login = (email, password) => {
-    return axios.post(`${API_URL}/signin`, {
-        email, password
-    })
-    .then(response => {
-        if (response.data.token) {
-            localStorage.setItem("user", JSON.stringify(response.data))
-        }
-        return response.data
-    })
+// Fetches current user's profile from the API
+const getMe = async () => {
+    const response = await api.get('/auth/me')
+    return response.data
 }
 
 const logout = () => {
-    localStorage.removeItem("user")
+    localStorage.removeItem(STORAGE_KEY)
 }
 
-const getCurrentUser = () => {
-    return JSON.parse(localStorage.getItem("user"))
+const getToken = () => {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (!stored) return null
+    return JSON.parse(stored).token || null
 }
 
-const AuthService = {
-    signup,
-    login,
-    logout,
-    getCurrentUser
-}
+const isAuthenticated = () => Boolean(getToken())
+
+const AuthService = { handleCallback, getMe, logout, getToken, isAuthenticated }
 
 export default AuthService

@@ -2,7 +2,10 @@ const { Person, Memory } = require('../models')
 
 const create = async (req, res) => {
     try {
-        const person = await Person.create(req.body)
+        const payload = { ...req.body }
+        if (req.uploadedProfilePicturePath) payload.profilePictureUrl = req.uploadedProfilePicturePath
+
+        const person = await Person.create(payload)
         res.status(201).json(person)
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -11,8 +14,19 @@ const create = async (req, res) => {
 
 const read = async (req, res) => {
     try {
-        const people = await Person.find()
-        res.status(200).json(people)
+        const [people, counts] = await Promise.all([
+            Person.find().sort({ firstName: 1 }),
+            Memory.aggregate([
+                { $unwind: '$people' },
+                { $group: { _id: '$people', count: { $sum: 1 } } }
+            ])
+        ])
+        const countMap = Object.fromEntries(counts.map(c => [c._id.toString(), c.count]))
+        const result = people.map(p => ({
+            ...p.toObject(),
+            memoryCount: countMap[p._id.toString()] || 0
+        }))
+        res.status(200).json(result)
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
@@ -24,7 +38,7 @@ const readOne = async (req, res) => {
         const person = await Person.findById(req.params.id)
         if (!person) return res.status(404).json({ error: 'Person not found' })
 
-        const memories = await Memory.find({ people: req.params.id }).populate('songId')
+        const memories = await Memory.find({ people: req.params.id }).populate('songId').populate('people')
         res.status(200).json({ ...person.toObject(), memories })
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -33,9 +47,12 @@ const readOne = async (req, res) => {
 
 const update = async (req, res) => {
     try {
+        const payload = { ...req.body }
+        if (req.uploadedProfilePicturePath) payload.profilePictureUrl = req.uploadedProfilePicturePath
+
         const person = await Person.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            payload,
             { new: true, runValidators: true }
         )
         if (!person) return res.status(404).json({ error: 'Person not found' })

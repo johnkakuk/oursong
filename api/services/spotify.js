@@ -45,4 +45,16 @@ const searchTracks = async (user, query, limit = 10) => {
     return response.data.tracks
 }
 
-module.exports = { searchTracks, getValidToken, refreshAccessToken }
+// Returns the user's recently played tracks from Spotify
+const getRecentlyPlayed = async (user, limit = 20) => {
+    const token = await getValidToken(user)
+
+    const response = await axios.get(`${SPOTIFY_API_BASE}/me/player/recently-played`, {
+        params: { limit: Math.min(limit, 50) },
+        headers: { Authorization: `Bearer ${token}` }
+    })
+
+    return response.data.items
+}
+
+module.exports = { searchTracks, getRecentlyPlayed, getValidToken, refreshAccessToken }

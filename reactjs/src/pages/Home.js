@@ -1,650 +1,354 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Masonry from 'react-masonry-css'
 import styled from 'styled-components'
-import DecksService from '../services/decks.service'
-import CardsService from '../services/cards.service'
 
-function Home({ onLogout }) {
-    // State, hooks and constants
+import SongCard, { NewSongCard } from '../components/SongCard'
+import MemoryCard from '../components/MemoryCard'
+import PersonCard from '../components/PersonCard'
+import TrackRow from '../components/TrackRow'
+import Hero from '../components/Hero'
+import SectionHeader from '../components/SectionHeader'
+
+import SongsService from '../services/songs.service'
+import MemoriesService from '../services/memories.service'
+import PeopleService from '../services/people.service'
+import SpotifyService from '../services/spotify.service'
+
+const MASONRY_BREAKPOINTS = { default: 3, 900: 2, 640: 1 }
+
+function Home({ user }) {
     const navigate = useNavigate()
-    const [decks, setDecks] = useState([])
-    const [deckCardStats, setDeckCardStats] = useState({})
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
-    const [menuDeckId, setMenuDeckId] = useState('')
-    const [editingDeckId, setEditingDeckId] = useState('')
-    const [editingName, setEditingName] = useState('')
-    const [savingDeckId, setSavingDeckId] = useState('')
-    const [newDeck, setNewDeck] = useState(null)
 
-    useEffect(() => {
-        const fetchDecks = async () => {
-            setLoading(true)
-            setError('')
+    const [songs, setSongs] = useState([])
+    const [memories, setMemories] = useState([])
+    const [people, setPeople] = useState([])
+    const [recentTracks, setRecentTracks] = useState([])
+    const [savingTrackId, setSavingTrackId] = useState(null)
 
-            try {
-                const response = await DecksService.getAllPrivateDecks()
-                const data = response?.data
+    const [loading, setLoading] = useState({ songs: true, memories: true, people: true, tracks: true })
+    const [error, setError] = useState({})
 
-                if (!Array.isArray(data)) {
-                    throw new Error(data?.message || 'Unable to load decks')
-                }
+    // Derive memory counts per song from the flat memories list
+    const memoriesBySong = memories.reduce((acc, m) => {
+        const id = m.songId?._id || m.songId
+        if (id) acc[id] = (acc[id] || 0) + 1
+        return acc
+    }, {})
 
-                setDecks(data)
-            } catch (err) {
-                setError(err.message || 'Unexpected error while loading decks')
-            } finally {
-                setLoading(false)
-            }
-        }
+    // Derive saved Spotify track IDs for the "Saved" badge
+    const savedTrackIds = new Set(songs.map(s => s.spotifyTrackId))
 
-        fetchDecks()
-    }, [])
-
-    // Fetch stats
-    useEffect(() => {
-        let ignore = false
-        const loadTime = new Date()
-
-        // Fetch all cards to calculate deck stats (total cards and cards due). Kind of inefficient but works for now since we don't expect a huge number of cards. Maybe later I can create a specific endpoint to fetch stats
-        const fetchCardStats = async () => {
-            try {
-                const response = await CardsService.getAllPrivateCards()
-                const cards = response?.data
-
-                if (!Array.isArray(cards)) {
-                    throw new Error(cards.message || 'Unable to load cards for stats')
-                }
-
-                const statsByDeck = (cards || []).reduce((stats, card) => {
-                    if (!card.deck) {
-                        return stats
-                    }
-
-                    if (!stats[card.deck]) {
-                        stats[card.deck] = {
-                            totalCards: 0,
-                            cardsDue: 0
-                        }
-                    }
-
-                    stats[card.deck].totalCards += 1
-                    if (new Date(card.showNext) <= loadTime) {
-                        stats[card.deck].cardsDue += 1
-                    }
-
-                    return stats
-                }, {})
-
-                if (!ignore) {
-                    setDeckCardStats(statsByDeck)
-                }
-            } catch (err) {
-                if (!ignore) {
-                    setError(err.message || 'Unexpected error while loading card stats')
-                }
-            }
-        }
-
-        fetchCardStats()
-
-        return () => {
-            ignore = true
-        }
-    }, [])
-
-    // Handler for the info button on deck cards
-    const handleToggleMenu = (event, deckId) => {
-        event.stopPropagation()
-        setMenuDeckId(currentDeckId => currentDeckId === deckId ? '' : deckId)
-    }
-
-    // Handler for starting the rename process (when clicking "Rename" in the deck menu)
-    const handleStartRename = (deck) => {
-        setMenuDeckId('')
-        setEditingDeckId(deck._id)
-        setEditingName(deck.name || '')
-        setError('')
-    }
-
-    // Handler for saving a deck (both creating new and renaming existing)
-    const handleSaveDeck = async (event, deck) => {
-        event.preventDefault()
-
-        const deckName = editingName.trim()
-        if (!deckName) {
-            setError('Deck title is required')
-            return
-        }
-
-        setSavingDeckId(deck._id)
-        setError('')
-
+    const fetchSongs = useCallback(async () => {
         try {
-            if (deck.isNew) {
-                const response = await DecksService.createPrivateDeck({ name: deckName })
-                const savedDeck = response?.data
-
-                setDecks(currentDecks => [...currentDecks, savedDeck])
-                setNewDeck(null)
-            } else {
-                const response = await DecksService.updatePrivateDeck(deck._id, { name: deckName })
-                const updatedDeck = response?.data
-
-                setDecks(currentDecks =>
-                    currentDecks.map(currentDeck =>
-                        currentDeck._id === deck._id ? updatedDeck : currentDeck
-                    )
-                )
-            }
-
-            setEditingDeckId('')
-            setEditingName('')
+            const response = await SongsService.getAll()
+            setSongs(response.data)
         } catch (err) {
-            const apiError = err?.response?.data?.message
-                || err?.response?.data?.error
-                || err?.message
-                || 'Unexpected error while saving deck'
-            setError(apiError)
+            setError(e => ({ ...e, songs: err.message }))
         } finally {
-            setSavingDeckId('')
+            setLoading(l => ({ ...l, songs: false }))
         }
-    }
+    }, [])
 
-    // Handler for canceling deck edit
-    const handleCancelDeckEdit = (deck) => {
-        if (deck?.isNew) {
-            setNewDeck(null)
-        }
-        setEditingDeckId('')
-        setEditingName('')
-        setError('')
-    }
-
-    // Handler for viewing all cards in a deck
-    const handleViewAll = async (deck) => {
-        setMenuDeckId('')
-        navigate(`/decks/${deck._id}`, {
-            state: {
-                deckName: deck.name,
-                viewingAllCards: true
-            }
-        })
-    }
-
-    // Handler for deleting a deck
-    const handleDeleteDeck = async (deck) => {
-        setMenuDeckId('')
-        if (!window.confirm(`Delete "${deck.name}"?`)) {
-            return
-        }
-
-        setError('')
+    const fetchMemories = useCallback(async () => {
         try {
-            await DecksService.deletePrivateDeck(deck._id)
-
-            setDecks(currentDecks => currentDecks.filter(currentDeck => currentDeck._id !== deck._id))
-            if (editingDeckId === deck._id) {
-                setEditingDeckId('')
-                setEditingName('')
-            }
+            const response = await MemoriesService.getAll()
+            setMemories(response.data)
         } catch (err) {
-            const apiError = err?.response?.data?.message
-                || err?.response?.data?.error
-                || err?.message
-                || 'Unexpected error while deleting deck'
-            setError(apiError)
+            setError(e => ({ ...e, memories: err.message }))
+        } finally {
+            setLoading(l => ({ ...l, memories: false }))
+        }
+    }, [])
+
+    const fetchPeople = useCallback(async () => {
+        try {
+            const response = await PeopleService.getAll()
+            setPeople(response.data)
+        } catch (err) {
+            setError(e => ({ ...e, people: err.message }))
+        } finally {
+            setLoading(l => ({ ...l, people: false }))
+        }
+    }, [])
+
+    const fetchRecentTracks = useCallback(async () => {
+        try {
+            const response = await SpotifyService.getRecentlyPlayed(20)
+            // Deduplicate by track ID (Spotify can return the same track multiple times)
+            const seen = new Set()
+            const unique = response.data.filter(item => {
+                if (seen.has(item.track.id)) return false
+                seen.add(item.track.id)
+                return true
+            })
+            setRecentTracks(unique.slice(0, 10))
+        } catch (err) {
+            setError(e => ({ ...e, tracks: err.message }))
+        } finally {
+            setLoading(l => ({ ...l, tracks: false }))
+        }
+    }, [])
+
+    useEffect(() => {
+        fetchSongs()
+        fetchMemories()
+        fetchPeople()
+        fetchRecentTracks()
+    }, [fetchSongs, fetchMemories, fetchPeople, fetchRecentTracks])
+
+    const handleSaveTrack = async (track) => {
+        setSavingTrackId(track.id)
+        try {
+            const songData = {
+                spotifyTrackId: track.id,
+                spotifyUri:     track.uri,
+                title:          track.name,
+                artists:        track.artists.map(a => a.name),
+                albumName:      track.album.name,
+                albumArtUrl:    track.album.images?.[0]?.url || '',
+                previewUrl:     track.preview_url || null,
+                duration:       track.duration_ms,
+            }
+            const response = await SongsService.create(songData)
+            setSongs(current => {
+                const exists = current.find(s => s.spotifyTrackId === track.id)
+                return exists ? current : [response.data, ...current]
+            })
+        } catch (err) {
+            console.error('Failed to save song:', err)
+        } finally {
+            setSavingTrackId(null)
         }
     }
 
-    // Handler for adding a new deck (when clicking the "Add Deck" card)
-    const handleAddDeck = () => {
-        setMenuDeckId('')
-        setError('')
+    // Sort songs newest first, show up to 6
+    const recentSongs = [...songs]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 6)
 
-        if (newDeck) {
-            setEditingDeckId(newDeck._id)
-            return
-        }
+    // Sort memories newest first, show up to 12
+    const recentMemories = [...memories]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 12)
 
-        const tempDeck = {
-            _id: `new-${Date.now()}`,
-            name: '',
-            isNew: true
-        }
-
-        setNewDeck(tempDeck)
-        setEditingDeckId(tempDeck._id)
-        setEditingName('')
-    }
-
-    // Combine decks with the new deck being created (if any) for display purposes
-    const safeDecks = Array.isArray(decks) ? decks : []
-    const displayDecks = newDeck ? [...safeDecks, newDeck] : safeDecks
+    // Sort people by memory count desc
+    const sortedPeople = [...people]
+        .map(p => ({
+            ...p,
+            memCount: memories.filter(m =>
+                m.people?.some(person => (person._id || person) === p._id)
+            ).length
+        }))
+        .sort((a, b) => b.memCount - a.memCount)
 
     return (
-        <DecksHome onClick={() => setMenuDeckId('')}>
-            <DecksTopBar>
-                <DecksHeading>Decks</DecksHeading>
-                <LogoutTextLink type="button" onClick={onLogout}>
-                    Log Out
-                </LogoutTextLink>
-            </DecksTopBar>
-            {error && <DecksError>{error}</DecksError>}
-            {loading && decks.length === 0 && <DecksStatus>Loading decks...</DecksStatus>}
+        <PageContent>
+            <Hero user={user} />
 
-            <DecksGrid>
-                {displayDecks.map(deck => {
-                    // Bools for conditional rendering and button states
-                    const isEditing = editingDeckId === deck._id
-                    const isSaving = savingDeckId === deck._id
-                    const stats = deckCardStats[deck._id] || { totalCards: 0, cardsDue: 0 }
+            <Divider />
 
-                    return (
-                        // Deck card component for each deck, with all necessary props and handlers. Man React is beautiful
-                        <DeckCard
-                            key={deck._id}
-                            deck={deck}
-                            isEditing={isEditing}
-                            isSaving={isSaving}
-                            editingName={editingName}
-                            showMenu={menuDeckId === deck._id}
-                            onToggleMenu={(event) => handleToggleMenu(event, deck._id)}
-                            onStartRename={() => handleStartRename(deck)}
-                            onDelete={() => handleDeleteDeck(deck)}
-                            onViewAll={() => handleViewAll(deck)}
-                            onNameChange={(event) => setEditingName(event.target.value)}
-                            onSave={(event) => handleSaveDeck(event, deck)}
-                            onCancel={() => handleCancelDeckEdit(deck)}
-                            onOpenDeck={() => navigate(`/decks/${deck._id}`, {
-                                state: { deckName: deck.name }
-                            })}
-                            deckStats={stats}
-                        />
-                    )
-                })}
+            {/* Recently saved songs */}
+            <Section>
+                <SectionHeader
+                    title="Recently saved songs"
+                    linkLabel="View all"
+                    onLinkClick={() => navigate('/songs')}
+                />
+                {loading.songs && songs.length === 0 ? (
+                    <StatusText>Loading songs…</StatusText>
+                ) : error.songs ? (
+                    <ErrorText>{error.songs}</ErrorText>
+                ) : (
+                    <SongsGrid>
+                        {recentSongs.map(song => (
+                            <SongCard
+                                key={song._id}
+                                song={song}
+                                memoryCount={memoriesBySong[song._id] || 0}
+                            />
+                        ))}
+                        <NewSongCard onClick={() => navigate('/search')} />
+                    </SongsGrid>
+                )}
+            </Section>
 
-                {/* Card for adding a new deck, with its handler. */}
-                <AddDeckCard onAddDeck={handleAddDeck} />
-            </DecksGrid>
-        </DecksHome>
-    )
-}
+            <Divider />
 
-// Component for each deck card on the home page, w/ conditional rendering
-function DeckCard({
-    deck,
-    isEditing,
-    isSaving,
-    editingName,
-    deckStats,
-    showMenu,
-    onToggleMenu,
-    onStartRename,
-    onViewAll,
-    onDelete,
-    onNameChange,
-    onSave,
-    onCancel,
-    onOpenDeck
-}) {
-    // To avoid having the "pointer" cursor on unopenable decks (like when editing or creating a new deck that hasn't been saved yet)
-    const canOpenDeck = Boolean(onOpenDeck && !isEditing && !deck.isNew)
-
-    return (
-        // Okay it's about to get cool
-        <Card
-            $isEditing={isEditing}
-            $canOpenDeck={canOpenDeck}
-            onClick={canOpenDeck ? onOpenDeck : undefined}
-        >
-            {/* If the card is in editing mode, show the edit form, otherwise show the deck title and stats */}
-            {isEditing ? (
-                <DeckEditForm onSubmit={onSave}>
-                    <DeckInput
-                        type="text"
-                        name="name"
-                        value={editingName}
-                        onChange={onNameChange}
-                        placeholder="Deck title"
-                        autoFocus
-                    />
-                    <DeckEditActions>
-                        <CancelDeckBtn type="button" onClick={onCancel} disabled={isSaving}>
-                            CANCEL
-                        </CancelDeckBtn>
-                        <SaveDeckBtn type="submit" disabled={isSaving}>
-                            {isSaving ? 'SAVING...' : 'SAVE'}
-                        </SaveDeckBtn>
-                    </DeckEditActions>
-                </DeckEditForm>
-            ) : (
-                <DeckTitle>{deck.name}</DeckTitle>
-            )}
-
-            {/* Only show stats when not editing, to avoid clutter and confusion. */}
-            {!isEditing && (
-                <DeckStats>
-                    <DeckStatsLine><DeckStatsLabel>Total cards:</DeckStatsLabel> {deckStats?.totalCards || 0}</DeckStatsLine>
-                    <DeckStatsLine><DeckStatsLabel>Cards due:</DeckStatsLabel> {deckStats?.cardsDue || 0}</DeckStatsLine>
-                </DeckStats>
-            )}
-
-            {/* Info button for each deck, only shown for non-editing, non-new decks */}
-            {!isEditing && !deck.isNew && (
-                <>
-                    <DeckInfoBtn
-                        type="button"
-                        onClick={(event) => {
-                            event.stopPropagation()
-                            onToggleMenu(event)
-                        }}
-                        aria-label={`Deck options for ${deck.name}`}
+            {/* Recent memories */}
+            <Section>
+                <SectionHeader
+                    title="Recent memories"
+                    linkLabel="View all"
+                    onLinkClick={() => navigate('/memories')}
+                />
+                {loading.memories && memories.length === 0 ? (
+                    <StatusText>Loading memories…</StatusText>
+                ) : error.memories ? (
+                    <ErrorText>{error.memories}</ErrorText>
+                ) : recentMemories.length === 0 ? (
+                    <StatusText>No memories yet. Open a song to add your first one.</StatusText>
+                ) : (
+                    <Masonry
+                        breakpointCols={MASONRY_BREAKPOINTS}
+                        className="masonry-grid"
+                        columnClassName="masonry-grid-col"
                     >
-                        i
-                    </DeckInfoBtn>
-                    {showMenu && (
-                        <DeckTooltip onClick={(event) => event.stopPropagation()}>
-                            <DeckTooltipBtn
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation()
-                                    onStartRename()
-                                }}
-                            >
-                                Rename
-                            </DeckTooltipBtn>
-                            <DeckTooltipBtn
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation()
-                                    onViewAll()
-                                }}
-                            >
-                                View All
-                            </DeckTooltipBtn>
-                            <DeleteDeckBtn
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation()
-                                    onDelete()
-                                }}
-                            >
-                                Delete
-                            </DeleteDeckBtn>
-                        </DeckTooltip>
-                    )}
-                </>
-            )}
-        </Card>
-    )
-}
+                        {recentMemories.map(memory => (
+                            <MemoryCard key={memory._id} memory={memory} />
+                        ))}
+                    </Masonry>
+                )}
+            </Section>
 
-// Simple component for the "Add Deck" card, just a button with a plus symbol
-function AddDeckCard({ onAddDeck }) {
-    return (
-        <AddDeckBtn type="button" onClick={onAddDeck} aria-label="Add deck">
-            <AddDeckSymbol>⊕</AddDeckSymbol>
-        </AddDeckBtn>
+            <Divider />
+
+            {/* Your people */}
+            <Section>
+                <SectionHeader
+                    title="Your people"
+                    linkLabel="View all"
+                    onLinkClick={() => navigate('/people')}
+                />
+                {loading.people && people.length === 0 ? (
+                    <StatusText>Loading…</StatusText>
+                ) : error.people ? (
+                    <ErrorText>{error.people}</ErrorText>
+                ) : sortedPeople.length === 0 ? (
+                    <StatusText>No people yet. Tag someone in a memory to add them.</StatusText>
+                ) : (
+                    <PeopleGrid>
+                        {sortedPeople.map(person => (
+                            <PersonCard
+                                key={person._id}
+                                person={person}
+                                memoryCount={person.memCount}
+                            />
+                        ))}
+                    </PeopleGrid>
+                )}
+            </Section>
+
+            <Divider />
+
+            {/* Recently played on Spotify */}
+            <Section>
+                <SectionHeader title="Recently played on Spotify" />
+                {loading.tracks && recentTracks.length === 0 ? (
+                    <StatusText>Loading…</StatusText>
+                ) : error.tracks ? (
+                    <ErrorText>
+                        Couldn't load recently played. Re-connect Spotify to grant the required permission.
+                    </ErrorText>
+                ) : recentTracks.length === 0 ? (
+                    <StatusText>No recent plays found.</StatusText>
+                ) : (
+                    <TracksList>
+                        {recentTracks.map((item, i) => (
+                            <TrackRow
+                                key={`${item.track.id}-${i}`}
+                                track={item.track}
+                                index={i}
+                                isSaved={savedTrackIds.has(item.track.id)}
+                                onSave={() => handleSaveTrack(item.track)}
+                                saving={savingTrackId === item.track.id}
+                            />
+                        ))}
+                    </TracksList>
+                )}
+            </Section>
+
+            {/* Scroll-end quote */}
+            <ScrollEnd>
+                <ScrollQuote>
+                    "Music was my refuge. I could crawl into the space between the notes and curl my back to loneliness."
+                </ScrollQuote>
+                <ScrollAttribution>—Maya Angelou</ScrollAttribution>
+            </ScrollEnd>
+        </PageContent>
     )
 }
 
 export default Home
 
-const Card = styled.article`
-    position: relative;
-    min-height: 180px;
-    border: 1px solid ${props => props.theme.border};
-    border-radius: 10px;
-    background: ${props => props.theme.surface};
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 1.25rem;
-    transition: background-color 180ms ease, border-color 180ms ease;
-    cursor: ${props => props.$canOpenDeck ? 'pointer' : 'default'};
-    aspect-ratio: 4 / 5;
-`
+const PageContent = styled.main`
+    flex: 1;
+    min-width: 0;
 
-const DeckTitle = styled.h2`
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: 700;
-    text-align: center;
-    line-height: 1.15;
-    color: ${props => props.theme.text};
-
-    @media (max-width: 640px) {
-        font-size: 1rem;
+    @media (max-width: 768px) {
+        padding-top: 64px;
     }
 `
 
-const DeckStats = styled.div`
-    position: absolute;
-    right: 0.75rem;
-    bottom: 0.55rem;
-    text-align: right;
-    color: ${props => props.theme.text};
-    font-size: 0.78rem;
-    line-height: 1.22;
+const Section = styled.div`
+    padding: 2rem;
 `
 
-const DeckStatsLine = styled.p`
-    margin: 0;
-`
-
-const DeckStatsLabel = styled.span`
-    color: ${props => props.theme.muted};
-`
-
-const DeckEditForm = styled.form`
-    width: 100%;
-    max-width: 100%;
-    margin: 0;
-    padding: 0;
+const Divider = styled.hr`
+    height: 1px;
+    background: var(--color-border-tertiary);
     border: none;
-    background: transparent;
+    margin: 0 2rem;
+`
+
+const SongsGrid = styled.div`
     display: grid;
-    gap: 0.65rem;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
 `
 
-const DeckInput = styled.input`
-    width: 100%;
-    max-width: calc(100% - 1.25rem);
-    border: 1px solid ${props => props.theme.border};
-    border-radius: 8px;
-    background: ${props => props.theme.bg};
-    color: ${props => props.theme.text};
-    font-size: 1.2rem;
-    padding: 0.45rem 0.55rem;
-
-    @media (max-width: 640px) {
-        font-size: 1.2rem;
-    }
-`
-
-const SaveDeckBtn = styled.button`
-    border: none;
-    background: transparent;
-    color: ${props => props.theme.accent};
-    font-size: 1rem;
-    font-weight: 700;
-    padding: 0.15rem 0;
-    cursor: pointer;
-
-    &:hover {
-        background: transparent;
-        color: ${props => props.theme.accent};
-    }
-
-    &:disabled {
-        color: ${props => props.theme.muted};
-        cursor: not-allowed;
-    }
-`
-
-const CancelDeckBtn = styled(SaveDeckBtn)`
-    color: ${props => props.theme.muted};
-
-    &:hover {
-        color: ${props => props.theme.text};
-    }
-`
-
-const DeckEditActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-`
-
-const DeckInfoBtn = styled.button`
-    position: absolute;
-    left: 10px;
-    bottom: 10px;
-    width: 18px;
-    height: 18px;
-    border: 1px solid ${props => props.theme.info};
-    border-radius: 50%;
-    background: transparent;
-    color: ${props => props.theme.info};
-    font-size: 0.75rem;
-    line-height: 1;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    cursor: pointer;
-
-    &:hover {
-        background: ${props => props.theme.bg};
-    }
-`
-
-const DeckTooltip = styled.div`
-    position: absolute;
-    left: 32px;
-    bottom: 22px;
-    background: ${props => props.theme.surface};
-    border-radius: 6px;
-    border: 1px solid ${props => props.theme.border};
-    padding: 0.35rem 0.55rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    box-shadow: 0 6px 18px rgba(47, 54, 64, 0.12);
-`
-
-const DeckTooltipBtn = styled.button`
-    margin: 0;
-    border: none;
-    background: transparent;
-    padding: 0;
-    text-align: left;
-    color: ${props => props.theme.text};
-    font-size: 0.92rem;
-    line-height: 1.2;
-    cursor: pointer;
-
-    &:hover {
-        background: transparent;
-        text-decoration: underline;
-    }
-`
-
-const DeleteDeckBtn = styled(DeckTooltipBtn)`
-    color: ${props => props.theme.danger};
-`
-
-const AddDeckBtn = styled.button`
-    min-height: 180px;
-    border: 1px dashed ${props => props.theme.border};
-    border-radius: 12px;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    cursor: pointer;
-    aspect-ratio: 4 / 5;
-
-    &:hover {
-        background: ${props => props.theme.surface};
-    }
-
-    &:hover span {
-        color: ${props => props.theme.text};
-    }
-`
-
-const AddDeckSymbol = styled.span`
-    font-size: 3.6rem;
-    line-height: 1;
-    color: ${props => props.theme.muted};
-`
-
-const DecksHome = styled.section`
-    min-height: 100vh;
-    padding: 2rem 3rem;
-    background: ${props => props.theme.bg};
-    color: ${props => props.theme.text};
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    transition: background-color 180ms ease, color 180ms ease;
-
-    @media (max-width: 640px) {
-        padding: 1rem;
-    }
-`
-
-const DecksHeading = styled.h1`
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    line-height: 1.15;
-`
-
-const DecksTopBar = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin: 0 0 1.5rem;
-`
-
-const LogoutTextLink = styled.button`
-    border: none;
-    background: transparent;
-    color: ${props => props.theme.info};
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    padding: 0;
-    margin: 0;
-    font: inherit;
-    cursor: pointer;
-`
-
-const DecksGrid = styled.section`
+const PeopleGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 20px;
-    width: min(900px, 100%);
-    margin: 6rem auto;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+`
 
-    @media (max-width: 1023px) {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+const TracksList = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    min-width: 0;
 
-    @media (max-width: 767px) {
+    @media (max-width: 900px) {
         grid-template-columns: 1fr;
-        margin-top: 3rem;
     }
 `
 
-const DecksError = styled.p`
-    color: ${props => props.theme.danger};
-    margin: 0 0 0.75rem;
+const StatusText = styled.p`
+    font-size: 14px;
+    color: var(--color-text-tertiary);
 `
 
-const DecksStatus = styled.p`
-    color: ${props => props.theme.muted};
+const ErrorText = styled.p`
+    font-size: 14px;
+    color: #e06c75;
+`
+
+const ScrollEnd = styled.div`
+    padding-top: 5rem;
+    padding-bottom: 8rem;
+    text-align: center;
+    padding-left: 2rem;
+    padding-right: 2rem;
+`
+
+const ScrollQuote = styled.h2`
+    font-size: 28px;
+    font-weight: 600;
+    font-style: italic;
+    line-height: 1.45;
+    letter-spacing: -0.2px;
+    color: rgba(255, 255, 255, 0.16);
+    max-width: 760px;
+    margin: 0 auto;
+`
+
+const ScrollAttribution = styled.p`
+    margin-top: 0.9rem;
+    font-size: 12px;
+    font-weight: 500;
+    font-style: italic;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.16);
 `

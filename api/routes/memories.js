@@ -13,7 +13,7 @@ const protectedRoute = passport.authenticate('jwt', { session: false })
 router.get('/',       protectedRoute, memoryCtlr.read)
 router.get('/:id',    protectedRoute, memoryCtlr.readOne)
 router.post('/',      protectedRoute, uploadMedia, memoryCtlr.create)
-router.put('/:id',    protectedRoute, memoryCtlr.update)
+router.put('/:id',    protectedRoute, uploadMedia, memoryCtlr.update)
 router.delete('/:id', protectedRoute, memoryCtlr.remove)
 
 module.exports = router

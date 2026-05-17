@@ -16,6 +16,15 @@ exports.spotifyCallback = (req, res) => {
     res.redirect(`${process.env.SPOTIFY_FRONTEND_REDIRECT}?token=${token}`)
 }
 
+// Returns the current authenticated user's profile
+exports.getMe = (req, res) => {
+    res.json({
+        id: req.user._id,
+        displayName: req.user.displayName,
+        spotifyId: req.user.spotifyId,
+    })
+}
+
 // Deprecated email-based signin/signup stuff
 // exports.signin = async (req, res, next) => {
 //     const user = req.user

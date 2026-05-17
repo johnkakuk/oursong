@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema({
         unique: true,
         sparse: true // Since two null values would collide on unique index
     },
+    displayName: {
+        type: String,
+        default: null
+    },
     spotifyAccessToken:  { type: String },
     spotifyRefreshToken: { type: String },
     spotifyTokenExpiry:  { type: Date   },

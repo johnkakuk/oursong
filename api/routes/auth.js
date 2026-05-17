@@ -13,7 +13,7 @@ const authentication_controller = require('../controllers/authentication_control
 
 // Spotify OAuth — redirect user to Spotify's auth page
 router.get('/spotify', passport.authenticate('spotify', {
-    scope: ['user-read-email', 'user-read-private', 'streaming'],
+    scope: ['user-read-email', 'user-read-private', 'streaming', 'user-read-recently-played'],
     session: false
 }))
 
@@ -23,5 +23,8 @@ router.get(
     passport.authenticate('spotify', { session: false, failureRedirect: '/' }),
     authentication_controller.spotifyCallback
 )
+
+// Returns current user's profile (used by frontend on load)
+router.get('/me', passport.authenticate('jwt', { session: false }), authentication_controller.getMe)
 
 module.exports = router;

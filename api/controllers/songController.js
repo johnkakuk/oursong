@@ -15,8 +15,18 @@ const create = async (req, res) => {
 
 const read = async (req, res) => {
     try {
-        const songs = await Song.find()
-        res.status(200).json(songs)
+        const [songs, counts] = await Promise.all([
+            Song.find().sort({ createdAt: -1 }),
+            Memory.aggregate([
+                { $group: { _id: '$songId', count: { $sum: 1 } } }
+            ])
+        ])
+        const countMap = Object.fromEntries(counts.map(c => [c._id.toString(), c.count]))
+        const result = songs.map(s => ({
+            ...s.toObject(),
+            memoryCount: countMap[s._id.toString()] || 0
+        }))
+        res.status(200).json(result)
     } catch (error) {
         res.status(500).json({ error: error.message })
     }

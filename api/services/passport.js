@@ -66,6 +66,7 @@ const spotifyStrategy = new SpotifyStrategy({
             user.spotifyAccessToken  = accessToken
             user.spotifyRefreshToken = refreshToken
             user.spotifyTokenExpiry  = tokenExpiry
+            user.displayName         = profile.displayName || null
             await user.save()
             return done(null, user)
         }
@@ -88,6 +89,7 @@ const spotifyStrategy = new SpotifyStrategy({
         user = await User.create({
             spotifyId:           profile.id,
             // email:               spotifyEmail,
+            displayName:         profile.displayName || null,
             spotifyAccessToken:  accessToken,
             spotifyRefreshToken: refreshToken,
             spotifyTokenExpiry:  tokenExpiry,
