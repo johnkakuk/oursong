@@ -175,6 +175,8 @@ function VideoMemory({ memory, onEdit, hideSong }) {
 function TextMemory({ memory, onEdit, hideSong }) {
     const { content, bgColor, backgroundImageUrl, songId, people = [] } = memory
     const [expanded, setExpanded] = useState(false)
+    const plainText = content?.replace(/<[^>]+>/g, '') || ''
+    const overflows = plainText.length > 300
 
     const cardStyle = backgroundImageUrl
         ? {
@@ -192,17 +194,19 @@ function TextMemory({ memory, onEdit, hideSong }) {
             </TextTopBar>
             <TextInner>
                 <TextContent
-                    $collapsed={!expanded}
+                    $collapsed={!expanded && overflows}
                     dangerouslySetInnerHTML={{ __html: content || '' }}
                 />
             </TextInner>
             <ActionRow>
-                <ExpandBtn
-                    type="button"
-                    onClick={e => { e.stopPropagation(); setExpanded(x => !x) }}
-                >
-                    {expanded ? 'Collapse ↑' : 'Read more ↓'}
-                </ExpandBtn>
+                {overflows && (
+                    <ExpandBtn
+                        type="button"
+                        onClick={e => { e.stopPropagation(); setExpanded(x => !x) }}
+                    >
+                        {expanded ? 'Collapse ↑' : 'Read more ↓'}
+                    </ExpandBtn>
+                )}
                 {onEdit && (
                     <CardEditBtn type="button" onClick={e => { e.stopPropagation(); onEdit(memory) }}>
                         Edit
