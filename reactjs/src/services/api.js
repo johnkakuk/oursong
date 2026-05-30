@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const API_BASE = process.env.NODE_ENV === 'development'
     ? 'http://localhost:8000/api/v1'
-    : process.env.REACT_APP_API_BASE_URL
+    : '/api/v1'
 
 const api = axios.create({ baseURL: API_BASE })
 
