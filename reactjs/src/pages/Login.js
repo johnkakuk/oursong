@@ -3,7 +3,8 @@ import noteIcon from '../images/np_notes_2825949_000000.svg'
 
 function Login() {
     const handleConnect = () => {
-        window.location.href = 'http://127.0.0.1:8000/api/v1/auth/spotify'
+        const base = process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : ''
+        window.location.href = `${base}/api/v1/auth/spotify`
     }
 
     return (
