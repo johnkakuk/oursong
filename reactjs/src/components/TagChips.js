@@ -2,9 +2,9 @@ import { useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Cropper from 'react-easy-crop'
 import styled from 'styled-components'
-import PeopleService from '../services/people.service'
+import TagsService from '../services/tags.service'
 
-// ── Crop helpers (same as AddEditPerson) ──────────────────────────────────────
+// ── Crop helpers (same as AddEditTag) ─────────────────────────────────────────
 
 function createImage(url) {
     return new Promise((resolve, reject) => {
@@ -30,9 +30,9 @@ async function getCroppedImg(imageSrc, croppedAreaPixels, outputSize = 400) {
     return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92))
 }
 
-// ── PeopleChips ───────────────────────────────────────────────────────────────
+// ── TagChips ──────────────────────────────────────────────────────────────────
 
-function PeopleChips({ people, selected, onToggle, onPersonCreated }) {
+function TagChips({ people, selected, onToggle, onPersonCreated }) {
     const [modalOpen, setModalOpen] = useState(false)
 
     return (
@@ -45,11 +45,11 @@ function PeopleChips({ people, selected, onToggle, onPersonCreated }) {
                         $selected={selected.includes(person._id)}
                         onClick={() => onToggle(person._id)}
                     >
-                        {person.firstName}
+                        {person.name}
                     </Chip>
                 ))}
                 <AddNewChip type="button" onClick={() => setModalOpen(true)}>
-                    + New person
+                    + New tag
                 </AddNewChip>
             </Chips>
 
@@ -69,10 +69,9 @@ function PeopleChips({ people, selected, onToggle, onPersonCreated }) {
 // ── QuickAddModal ─────────────────────────────────────────────────────────────
 
 function QuickAddModal({ onClose, onCreated }) {
-    const [firstName, setFirstName] = useState('')
-    const [lastName, setLastName]   = useState('')
+    const [name, setName] = useState('')
 
-    const [photoFile, setPhotoFile]     = useState(null)
+    const [photoFile, setPhotoFile]       = useState(null)
     const [photoPreview, setPhotoPreview] = useState(null)
 
     const [avatarDragOver, setAvatarDragOver] = useState(false)
@@ -121,20 +120,19 @@ function QuickAddModal({ onClose, onCreated }) {
     const handleSubmit = async (e) => {
         e.preventDefault()
         e.stopPropagation()
-        if (!firstName.trim() || saving) return
+        if (!name.trim() || saving) return
         setSaving(true)
         setError('')
         try {
             let payload
             if (photoFile) {
                 payload = new FormData()
-                payload.append('firstName', firstName.trim())
-                payload.append('lastName', lastName.trim())
+                payload.append('name', name.trim())
                 payload.append('profilePicture', photoFile)
             } else {
-                payload = { firstName: firstName.trim(), lastName: lastName.trim() }
+                payload = { name: name.trim() }
             }
-            const res = await PeopleService.create(payload)
+            const res = await TagsService.create(payload)
             onCreated(res.data)
         } catch (err) {
             setError(err?.response?.data?.error || 'Failed to save')
@@ -142,7 +140,7 @@ function QuickAddModal({ onClose, onCreated }) {
         }
     }
 
-    const initials = [firstName?.[0], lastName?.[0]].filter(Boolean).join('').toUpperCase() || '?'
+    const initial = name?.[0]?.toUpperCase() || '?'
 
     return createPortal(
         <>
@@ -187,7 +185,7 @@ function QuickAddModal({ onClose, onCreated }) {
             {/* Quick-add modal */}
             <Backdrop onClick={e => { if (e.target === e.currentTarget) onClose() }}>
                 <Modal>
-                    <ModalTitle>New person</ModalTitle>
+                    <ModalTitle>New tag</ModalTitle>
                     <ModalForm onSubmit={handleSubmit}>
                         <AvatarRow>
                             <AvatarBtn
@@ -204,7 +202,7 @@ function QuickAddModal({ onClose, onCreated }) {
                             >
                                 {photoPreview
                                     ? <AvatarImg src={photoPreview} alt="preview" />
-                                    : <AvatarInitials>{initials}</AvatarInitials>
+                                    : <AvatarInitial>{initial}</AvatarInitial>
                                 }
                             </AvatarBtn>
                             <input
@@ -218,23 +216,17 @@ function QuickAddModal({ onClose, onCreated }) {
 
                         <ModalField
                             type="text"
-                            placeholder="First name"
-                            value={firstName}
-                            onChange={e => setFirstName(e.target.value)}
+                            placeholder="Name"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
                             autoFocus
-                        />
-                        <ModalField
-                            type="text"
-                            placeholder="Last name"
-                            value={lastName}
-                            onChange={e => setLastName(e.target.value)}
                         />
 
                         {error && <ModalError>{error}</ModalError>}
 
                         <ModalActions>
                             <SecondaryBtn type="button" onClick={onClose}>Cancel</SecondaryBtn>
-                            <PrimaryBtn type="submit" disabled={!firstName.trim() || saving}>
+                            <PrimaryBtn type="submit" disabled={!name.trim() || saving}>
                                 {saving ? 'Saving…' : 'Create'}
                             </PrimaryBtn>
                         </ModalActions>
@@ -246,7 +238,7 @@ function QuickAddModal({ onClose, onCreated }) {
     )
 }
 
-export default PeopleChips
+export default TagChips
 
 // ── Styled components ─────────────────────────────────────────────────────────
 
@@ -354,7 +346,7 @@ const AvatarImg = styled.img`
     display: block;
 `
 
-const AvatarInitials = styled.span`
+const AvatarInitial = styled.span`
     font-size: 22px;
     font-weight: 600;
     color: var(--accent-highlight);

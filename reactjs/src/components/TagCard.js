@@ -1,39 +1,34 @@
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 
-export function NewPersonCard() {
+export function NewTagCard() {
     const navigate = useNavigate()
     return (
-        <NewCard onClick={() => navigate('/people/new')}>
+        <NewCard onClick={() => navigate('/tags/new')}>
             <NewIcon>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <path d="M7 2v10M2 7h10" stroke="var(--color-text-tertiary)" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
             </NewIcon>
-            <span>Add person</span>
+            <span>Add tag</span>
         </NewCard>
     )
 }
 
-function PersonCard({ person, memoryCount = 0 }) {
+function TagCard({ person, memoryCount = 0 }) {
     const navigate = useNavigate()
 
-    const initials = [person.firstName?.[0], person.lastName?.[0]]
-        .filter(Boolean)
-        .join('')
-        .toUpperCase() || '?'
-
-    const displayName = [person.firstName, person.lastName].filter(Boolean).join(' ')
+    const initial = person.name?.[0]?.toUpperCase() || '?'
 
     return (
-        <Card onClick={() => navigate(`/people/${person._id}`)}>
+        <Card onClick={() => navigate(`/tags/${person._id}`)}>
             <Avatar>
                 {person.profilePictureUrl
-                    ? <AvatarImg src={person.profilePictureUrl} alt={displayName} />
-                    : initials
+                    ? <AvatarImg src={person.profilePictureUrl} alt={person.name} />
+                    : initial
                 }
             </Avatar>
-            <PersonName>{displayName}</PersonName>
+            <TagName>{person.name}</TagName>
             <MemoryCount>
                 {memoryCount} {memoryCount === 1 ? 'memory' : 'memories'}
             </MemoryCount>
@@ -41,7 +36,7 @@ function PersonCard({ person, memoryCount = 0 }) {
     )
 }
 
-export default PersonCard
+export default TagCard
 
 const Card = styled.article`
     border-radius: var(--border-radius-lg);
@@ -84,7 +79,7 @@ const AvatarImg = styled.img`
     display: block;
 `
 
-const PersonName = styled.span`
+const TagName = styled.span`
     font-size: 14px;
     font-weight: 500;
     color: var(--color-text-primary);

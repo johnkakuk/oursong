@@ -1,6 +1,11 @@
 const mongoose = require('mongoose')
 
 const memorySchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
     songId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Song',
@@ -23,8 +28,12 @@ const memorySchema = new mongoose.Schema({
     },
     people: [{ // Associated people
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Person'
+        ref: 'Tag'
     }],
+    caption: { // Optional caption for photo/video memories
+        type: String,
+        default: null
+    },
     bgColor: { // Hex color for text-type memory backgrounds
         type: String,
         default: null

@@ -15,10 +15,11 @@ const PORT = process.env.PORT || 8000;
 
 const songRouter      = require('./routes/songs')
 const memoryRouter    = require('./routes/memories')
-const peopleRouter    = require('./routes/people')
+const tagsRouter      = require('./routes/tags')
 const localSongRouter = require('./routes/localSongs')
 const spotifyRouter   = require('./routes/spotify')
 const authRouter      = require('./routes/auth')
+const uploadRouter    = require('./routes/upload')
 require('./services/passport')
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -39,10 +40,11 @@ app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }))
 
 app.use('/api/v1/songs',       songRouter)
 app.use('/api/v1/memories',     memoryRouter)
-app.use('/api/v1/people',      peopleRouter)
+app.use('/api/v1/tags',        tagsRouter)
 app.use('/api/v1/local-songs', localSongRouter)
 app.use('/api/v1/spotify',    spotifyRouter)
 app.use('/api/v1/auth',       authRouter)
+app.use('/api/v1/upload',     uploadRouter)
 
 // Serve uploaded media files
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')))

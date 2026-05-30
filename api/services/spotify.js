@@ -33,16 +33,21 @@ const getValidToken = async (user) => {
     return refreshAccessToken(user)
 }
 
-// Searches Spotify tracks — returns the tracks object from Spotify's response
-const searchTracks = async (user, query, limit = 10) => {
+// Searches Spotify, returns objects from Spotify's response
+const searchSpotify = async (user, query, limit = 10) => {
     const token = await getValidToken(user)
 
     const response = await axios.get(`${SPOTIFY_API_BASE}/search`, {
-        params: { q: query, type: 'track', limit: String(limit) },
+        params: { q: query, type: 'artist,album,track', limit: String(limit) },
         headers: { Authorization: `Bearer ${token}` }
     })
 
-    return response.data.tracks
+    const { tracks, albums, artists } = response.data
+    return {
+        tracks: tracks.items,
+        albums: albums.items,
+        artists: artists.items,
+    }
 }
 
 // Returns the user's recently played tracks from Spotify
@@ -57,4 +62,14 @@ const getRecentlyPlayed = async (user, limit = 20) => {
     return response.data.items
 }
 
-module.exports = { searchTracks, getRecentlyPlayed, getValidToken, refreshAccessToken }
+// Returns top 10 tracks
+const getTopTracks = async (user, limit = 10) => {
+    const token = await getValidToken(user)
+
+    const response = await axios.get(`${SPOTIFY_API_BASE}/me/top/tracks`, {
+        params: { limit: 10, time_range: "long_term" },
+        headers: { Authorization: `Bearer ${token}` }
+    })
+}
+
+module.exports = { searchSpotify, getRecentlyPlayed, getValidToken, refreshAccessToken }

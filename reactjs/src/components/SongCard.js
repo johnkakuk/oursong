@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
+import PlayButton from './PlayButton'
 
 function SongCard({ song, memoryCount = 0 }) {
     const navigate = useNavigate()
@@ -8,13 +9,17 @@ function SongCard({ song, memoryCount = 0 }) {
         <Card onClick={() => navigate(`/songs/${song._id}`)}>
             <AlbumArt src={song.albumArtUrl} alt={`${song.albumName} album art`} />
             <CardBody>
-                <Title>{song.title}</Title>
-                <Artist>{song.artists?.join(', ')}</Artist>
+                <TitleRow>
+                    <TitleGroup>
+                        <Title>{song.title}</Title>
+                        <Artist>{song.artists?.join(', ')}</Artist>
+                    </TitleGroup>
+                    <PlayButton song={song} size="sm" />
+                </TitleRow>
                 <CardMeta>
                     <MemoryCount>
                         {memoryCount} {memoryCount === 1 ? 'memory' : 'memories'}
                     </MemoryCount>
-                    <Dot />
                 </CardMeta>
             </CardBody>
         </Card>
@@ -62,6 +67,18 @@ const CardBody = styled.div`
     padding: 12px;
 `
 
+const TitleRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 8px;
+`
+
+const TitleGroup = styled.div`
+    flex: 1;
+    min-width: 0;
+`
+
 const Title = styled.div`
     font-size: 14px;
     font-weight: 500;
@@ -70,6 +87,7 @@ const Title = styled.div`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    width: auto;
 `
 
 const Artist = styled.div`
@@ -92,12 +110,6 @@ const MemoryCount = styled.span`
     color: var(--color-text-tertiary);
 `
 
-const Dot = styled.div`
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--accent-muted);
-`
 
 const NewCard = styled.article`
     border-radius: var(--border-radius-lg);

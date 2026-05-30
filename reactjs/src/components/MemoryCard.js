@@ -4,6 +4,7 @@ import styled, { css } from 'styled-components'
 import Lightbox from 'yet-another-react-lightbox'
 import 'yet-another-react-lightbox/styles.css'
 import { ReactComponent as NotesIcon } from '../images/np_notes_2825949_000000.svg'
+import PlayButton from './PlayButton'
 
 function getYouTubeId(url) {
     try {
@@ -35,15 +36,28 @@ function SongLabel({ song, hideSong }) {
     )
 }
 
+function Caption({ text }) {
+    const [expanded, setExpanded] = useState(false)
+    if (!text) return null
+    return (
+        <CaptionWrap>
+            <CaptionText $expanded={expanded}>{text}</CaptionText>
+            <ReadMoreBtn type="button" onClick={e => { e.stopPropagation(); setExpanded(v => !v) }}>
+                {expanded ? 'Show less' : 'Read more ↓'}
+            </ReadMoreBtn>
+        </CaptionWrap>
+    )
+}
+
 function PeopleAttribution({ people = [] }) {
     if (!people.length) return null
     return (
         <span>
-            With:{' '}
+            Tags:{' '}
             {people.map((person, i) => (
                 <span key={person._id}>
-                    <PersonLink to={`/people/${person._id}`}>
-                        {person.firstName}
+                    <PersonLink to={`/tags/${person._id}`}>
+                        {person.name}
                     </PersonLink>
                     {i < people.length - 1 && ', '}
                 </span>
@@ -64,9 +78,11 @@ function PhotoMemory({ memory, onEdit, hideSong }) {
                     {!hideSong && songId?.title && (
                         <TopBar>
                             <SongLabel song={songId} hideSong={hideSong} />
+                            <PlayButton song={songId} size="sm" variant="icon" />
                         </TopBar>
                     )}
                 </MediaWrap>
+                <Caption text={memory.caption} />
                 <BottomBar>
                     <PeopleAttribution people={people} />
                     {onEdit && (
@@ -126,11 +142,6 @@ function VideoMemory({ memory, onEdit, hideSong }) {
                             <VideoPlaceholder />
                         )}
                         <VideoOverlay />
-                        {!hideSong && songId?.title && (
-                            <TopBar>
-                                <SongLabel song={songId} hideSong={hideSong} />
-                            </TopBar>
-                        )}
                         <PlayBtn
                             role="button"
                             onClick={e => { e.stopPropagation(); setPlaying(true) }}
@@ -141,7 +152,14 @@ function VideoMemory({ memory, onEdit, hideSong }) {
                         </PlayBtn>
                     </>
                 )}
+                {!hideSong && songId?.title && (
+                    <TopBar>
+                        <SongLabel song={songId} hideSong={hideSong} />
+                        <PlayButton song={songId} size="sm" variant="icon" />
+                    </TopBar>
+                )}
             </MediaWrap>
+            <Caption text={memory.caption} />
             <BottomBar>
                 <PeopleAttribution people={people} />
                 {onEdit && (
@@ -170,6 +188,7 @@ function TextMemory({ memory, onEdit, hideSong }) {
         <Card style={cardStyle}>
             <TextTopBar>
                 <SongLabel song={songId} hideSong={hideSong} />
+                {songId && <PlayButton song={songId} size="sm" variant="icon" />}
             </TextTopBar>
             <TextInner>
                 <TextContent
@@ -253,6 +272,10 @@ const TopBar = styled.div`
     z-index: 2;
     padding: 10px 12px 32px;
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
 `
 
 const PlayBtn = styled.div`
@@ -334,6 +357,10 @@ const PersonLink = styled(Link)`
 
 const TextTopBar = styled.div`
     padding: 1.25rem 1.5rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 8px;
 `
 
 const TextInner = styled.div`
@@ -347,6 +374,7 @@ const TextContent = styled.div`
 
     p + p { margin-top: 0.85em; }
     em { font-style: italic; color: rgba(255, 255, 255, 0.52); }
+    img { max-width: 100%; height: auto; border-radius: 6px; display: block; }
     h1, h2, h3 {
         font-size: 17px;
         font-weight: 600;
@@ -400,6 +428,40 @@ const CardEditBtn = styled.button`
 
     &:hover {
         color: var(--accent);
+    }
+`
+
+const CaptionWrap = styled.div`
+    padding: 8px 12px 2px;
+`
+
+const CaptionText = styled.p`
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+    margin: 0;
+
+    ${props => !props.$expanded && `
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    `}
+`
+
+const ReadMoreBtn = styled.button`
+    padding: 0;
+    font-size: 11px;
+    font-weight: 500;
+    margin: 0 0 4px;
+    color: var(--color-text-tertiary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s;
+
+    &:hover {
+        color: var(--color-text-secondary);
     }
 `
 

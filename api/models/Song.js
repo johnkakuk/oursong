@@ -1,10 +1,14 @@
 const mongoose = require('mongoose')
 
 const songSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
     spotifyTrackId: {
         type: String,
-        required: true,
-        unique: true
+        required: true
     },
     spotifyUri: {
         type: String,
@@ -29,6 +33,14 @@ const songSchema = new mongoose.Schema({
     previewUrl: {
         type: String,
         default: null
+    },
+    isPublished: {
+        type: Boolean,
+        default: false,
+    },
+    shareToken: {
+        type: String,
+        default: null,
     },
     duration: {
         type: Number, // in milliseconds

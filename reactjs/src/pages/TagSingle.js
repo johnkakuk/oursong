@@ -5,87 +5,82 @@ import styled from 'styled-components'
 
 import MemoryCard from '../components/MemoryCard'
 import SectionHeader from '../components/SectionHeader'
-import PeopleService from '../services/people.service'
+import TagsService from '../services/tags.service'
 import { ReactComponent as TrashIcon } from '../images/np_trash_1523231_000000.svg'
 
 const MASONRY_BREAKPOINTS = { default: 3, 900: 2, 640: 1 }
 
-function PersonSingle() {
+function TagSingle() {
     const { id } = useParams()
     const navigate = useNavigate()
     const location = useLocation()
-    const [person, setPerson] = useState(null)
+    const [tag, setTag] = useState(null)
     const [memories, setMemories] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
 
     useEffect(() => {
-        PeopleService.getOne(id)
+        TagsService.getOne(id)
             .then(res => {
-                const { memories: personMemories, ...personData } = res.data
-                setPerson(personData)
-                setMemories(personMemories || [])
+                const { memories: tagMemories, ...tagData } = res.data
+                setTag(tagData)
+                setMemories(tagMemories || [])
             })
-            .catch(err => setError(err.message || 'Failed to load person'))
+            .catch(err => setError(err.message || 'Failed to load tag'))
             .finally(() => setLoading(false))
     }, [id])
 
     const handleDelete = async () => {
-        if (!window.confirm(`Remove ${person.firstName}? They'll be untagged from all memories.`)) return
+        if (!window.confirm(`Remove "${tag.name}"? It'll be untagged from all memories.`)) return
         try {
-            await PeopleService.remove(id)
-            navigate('/people', { replace: true })
+            await TagsService.remove(id)
+            navigate('/tags', { replace: true })
         } catch {
-            setError('Failed to delete person')
+            setError('Failed to delete tag')
         }
     }
 
     if (loading) return <StatusMsg>Loading…</StatusMsg>
     if (error)   return <StatusMsg $error>{error}</StatusMsg>
-    if (!person) return null
+    if (!tag) return null
 
-    const initials = [person.firstName?.[0], person.lastName?.[0]]
-        .filter(Boolean)
-        .join('')
-        .toUpperCase() || '?'
-
-    const displayName = [person.firstName, person.lastName].filter(Boolean).join(' ')
+    const initial = tag.name?.[0]?.toUpperCase() || '?'
     const memoryCount = memories.length
 
     return (
         <Page>
-            <PersonHero>
+            <TagHero>
                 <Avatar>
-                    {person.profilePictureUrl
-                        ? <AvatarImg src={person.profilePictureUrl} alt={displayName} />
-                        : initials
+                    {tag.profilePictureUrl
+                        ? <AvatarImg src={tag.profilePictureUrl} alt={tag.name} />
+                        : initial
                     }
                 </Avatar>
                 <HeroInfo>
-                    <PersonName>{displayName}</PersonName>
+                    <TagName>{tag.name}</TagName>
                     <MemoryCount>
                         {memoryCount} {memoryCount === 1 ? 'memory' : 'memories'}
                     </MemoryCount>
                 </HeroInfo>
                 <HeroActions>
-                    <TrashBtn type="button" onClick={handleDelete} title="Delete person">
+                    <TrashBtn type="button" onClick={handleDelete} title="Delete tag">
                         <Trash />
                     </TrashBtn>
                     <EditBtn
                         type="button"
-                        onClick={() => navigate(`/people/${id}/edit`, { state: { person } })}
+                        onClick={() => navigate(`/tags/${id}/edit`, { state: { person: tag } })}
                     >
                         Edit
                     </EditBtn>
                 </HeroActions>
-            </PersonHero>
+            </TagHero>
 
             <Divider />
 
             <Section>
                 <SectionHeader title="Memories" />
                 {memoryCount === 0
-                    ? <EmptyMsg>No memories yet — tag {person.firstName} when adding a memory.</EmptyMsg>
+                    ? <EmptyMsg>No memories yet — tag {tag.name} when adding a memory.</EmptyMsg>
                     : (
                         <Masonry
                             breakpointCols={MASONRY_BREAKPOINTS}
@@ -110,7 +105,7 @@ function PersonSingle() {
     )
 }
 
-export default PersonSingle
+export default TagSingle
 
 const Page = styled.div`
     flex: 1;
@@ -121,7 +116,7 @@ const Page = styled.div`
     }
 `
 
-const PersonHero = styled.div`
+const TagHero = styled.div`
     display: flex;
     align-items: center;
     gap: 1.5rem;
@@ -164,7 +159,7 @@ const HeroInfo = styled.div`
     gap: 4px;
 `
 
-const PersonName = styled.h1`
+const TagName = styled.h1`
     font-size: 26px;
     font-weight: 600;
     color: var(--color-text-primary);

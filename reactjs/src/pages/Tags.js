@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import styled from 'styled-components'
 
-import PersonCard, { NewPersonCard } from '../components/PersonCard'
+import TagCard, { NewTagCard } from '../components/TagCard'
 import SectionHeader from '../components/SectionHeader'
-import PeopleService from '../services/people.service'
+import TagsService from '../services/tags.service'
 
-function People() {
-    const [people, setPeople] = useState([])
+function Tags() {
+    const [tags, setTags] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
 
     useEffect(() => {
-        PeopleService.getAll()
-            .then(res => setPeople(res.data))
-            .catch(err => setError(err.message || 'Failed to load people'))
+        TagsService.getAll()
+            .then(res => setTags(res.data))
+            .catch(err => setError(err.message || 'Failed to load tags'))
             .finally(() => setLoading(false))
     }, [])
 
@@ -23,24 +23,24 @@ function People() {
     return (
         <Page>
             <Section>
-                <PageTitle>All People</PageTitle>
-                <SectionHeader title={`${people.length} ${people.length === 1 ? 'person' : 'people'}`} />
+                <PageTitle>All Tags</PageTitle>
+                <SectionHeader title={`${tags.length} ${tags.length === 1 ? 'tag' : 'tags'}`} />
                 <Grid>
-                    {people.map(person => (
-                        <PersonCard
-                            key={person._id}
-                            person={person}
-                            memoryCount={person.memoryCount}
+                    {tags.map(tag => (
+                        <TagCard
+                            key={tag._id}
+                            person={tag}
+                            memoryCount={tag.memoryCount}
                         />
                     ))}
-                    <NewPersonCard />
+                    <NewTagCard />
                 </Grid>
             </Section>
         </Page>
     )
 }
 
-export default People
+export default Tags
 
 const Page = styled.div`
     flex: 1;

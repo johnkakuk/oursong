@@ -5,14 +5,14 @@ import styled from 'styled-components'
 
 import SongCard, { NewSongCard } from '../components/SongCard'
 import MemoryCard from '../components/MemoryCard'
-import PersonCard from '../components/PersonCard'
+import TagCard from '../components/TagCard'
 import TrackRow from '../components/TrackRow'
 import Hero from '../components/Hero'
 import SectionHeader from '../components/SectionHeader'
 
 import SongsService from '../services/songs.service'
 import MemoriesService from '../services/memories.service'
-import PeopleService from '../services/people.service'
+import TagsService from '../services/tags.service'
 import SpotifyService from '../services/spotify.service'
 
 const MASONRY_BREAKPOINTS = { default: 3, 900: 2, 640: 1 }
@@ -63,7 +63,7 @@ function Home({ user }) {
 
     const fetchPeople = useCallback(async () => {
         try {
-            const response = await PeopleService.getAll()
+            const response = await TagsService.getAll()
             setPeople(response.data)
         } catch (err) {
             setError(e => ({ ...e, people: err.message }))
@@ -203,23 +203,23 @@ function Home({ user }) {
 
             <Divider />
 
-            {/* Your people */}
+            {/* Your tags */}
             <Section>
                 <SectionHeader
-                    title="Your people"
+                    title="Your tags"
                     linkLabel="View all"
-                    onLinkClick={() => navigate('/people')}
+                    onLinkClick={() => navigate('/tags')}
                 />
                 {loading.people && people.length === 0 ? (
                     <StatusText>Loading…</StatusText>
                 ) : error.people ? (
                     <ErrorText>{error.people}</ErrorText>
                 ) : sortedPeople.length === 0 ? (
-                    <StatusText>No people yet. Tag someone in a memory to add them.</StatusText>
+                    <StatusText>No tags yet. Tag someone in a memory to add them.</StatusText>
                 ) : (
                     <PeopleGrid>
                         {sortedPeople.map(person => (
-                            <PersonCard
+                            <TagCard
                                 key={person._id}
                                 person={person}
                                 memoryCount={person.memCount}

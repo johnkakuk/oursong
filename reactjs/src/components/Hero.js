@@ -1,10 +1,15 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import styled from 'styled-components'
 
 function Hero({ user }) {
-    const [query, setQuery] = useState('')
+    const [searchParams] = useSearchParams()
+    const [query, setQuery] = useState(searchParams.get('q') || '')
     const navigate = useNavigate()
+
+    useEffect(() => {
+        setQuery(searchParams.get('q') || '')
+    }, [searchParams])
 
     const greeting = getGreeting()
     const firstName = user?.displayName?.split(' ')[0] || 'there'

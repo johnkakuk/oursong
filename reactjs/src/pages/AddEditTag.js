@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import Cropper from 'react-easy-crop'
 import styled from 'styled-components'
 
-import PeopleService from '../services/people.service'
+import TagsService from '../services/tags.service'
 
 // ── Crop helpers ──────────────────────────────────────────────────────────────
 
@@ -36,19 +36,18 @@ async function getCroppedImg(imageSrc, croppedAreaPixels, outputSize = 400) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function AddEditPerson() {
+function AddEditTag() {
     const { id } = useParams()
     const navigate = useNavigate()
     const location = useLocation()
 
     const editMode = Boolean(id)
 
-    const [personData] = useState(location.state?.person || null)
+    const [tagData] = useState(location.state?.person || null)
     const [formReady, setFormReady] = useState(!editMode || Boolean(location.state?.person))
 
     // Form fields
-    const [firstName, setFirstName] = useState('')
-    const [lastName, setLastName]   = useState('')
+    const [name, setName] = useState('')
 
     // Photo state — photoPreview is either a blob URL (new file) or server URL (existing)
     const [photoFile, setPhotoFile]       = useState(null)
@@ -69,17 +68,16 @@ function AddEditPerson() {
     useEffect(() => {
         if (!editMode) return
 
-        const populate = (p) => {
-            setFirstName(p.firstName || '')
-            setLastName(p.lastName || '')
-            setPhotoPreview(p.profilePictureUrl || null)
+        const populate = (t) => {
+            setName(t.name || '')
+            setPhotoPreview(t.profilePictureUrl || null)
             setFormReady(true)
         }
 
-        if (personData) {
-            populate(personData)
+        if (tagData) {
+            populate(tagData)
         } else {
-            PeopleService.getOne(id)
+            TagsService.getOne(id)
                 .then(res => populate(res.data))
                 .catch(() => setFormReady(true))
         }
@@ -112,7 +110,6 @@ function AddEditPerson() {
             const blob = await getCroppedImg(rawImageSrc, croppedAreaPixels)
             const file = new File([blob], 'profile-picture.jpg', { type: 'image/jpeg' })
 
-            // Revoke previous blob preview URL if it was one we created
             if (photoFile && photoPreview) URL.revokeObjectURL(photoPreview)
 
             setPhotoFile(file)
@@ -140,10 +137,9 @@ function AddEditPerson() {
 
     // ── Form helpers ─────────────────────────────────────────────────────────
 
-    const initials = [firstName?.[0], lastName?.[0]]
-        .filter(Boolean).join('').toUpperCase() || '?'
+    const initial = name?.[0]?.toUpperCase() || '?'
 
-    const canSubmit = () => firstName.trim().length > 0
+    const canSubmit = () => name.trim().length > 0
 
     const handleSubmit = async (e) => {
         e.preventDefault()
@@ -157,19 +153,18 @@ function AddEditPerson() {
 
             if (photoFile) {
                 payload = new FormData()
-                payload.append('firstName', firstName.trim())
-                payload.append('lastName', lastName.trim())
+                payload.append('name', name.trim())
                 payload.append('profilePicture', photoFile)
             } else {
-                payload = { firstName: firstName.trim(), lastName: lastName.trim() }
+                payload = { name: name.trim() }
             }
 
             if (editMode) {
-                await PeopleService.update(id, payload)
-                navigate(`/people/${id}`, { replace: true })
+                await TagsService.update(id, payload)
+                navigate(`/tags/${id}`, { replace: true })
             } else {
-                const res = await PeopleService.create(payload)
-                navigate(`/people/${res.data._id}`, { replace: true })
+                const res = await TagsService.create(payload)
+                navigate(`/tags/${res.data._id}`, { replace: true })
             }
         } catch (err) {
             const msg = err?.response?.data?.error || err.message || 'Failed to save'
@@ -179,10 +174,10 @@ function AddEditPerson() {
     }
 
     const handleDelete = async () => {
-        if (!window.confirm(`Remove ${firstName}? They'll be untagged from all memories.`)) return
+        if (!window.confirm(`Remove "${name}"? It'll be untagged from all memories.`)) return
         try {
-            await PeopleService.remove(id)
-            navigate('/people', { replace: true })
+            await TagsService.remove(id)
+            navigate('/tags', { replace: true })
         } catch (err) {
             setError(err?.response?.data?.error || err.message || 'Failed to delete')
         }
@@ -234,10 +229,10 @@ function AddEditPerson() {
 
             <Form onSubmit={handleSubmit}>
                 <Header>
-                    <BackBtn type="button" onClick={() => navigate(editMode ? `/people/${id}` : '/people')}>
+                    <BackBtn type="button" onClick={() => navigate(editMode ? `/tags/${id}` : '/tags')}>
                         ← Back
                     </BackBtn>
-                    <PageTitle>{editMode ? 'Edit person' : 'New person'}</PageTitle>
+                    <PageTitle>{editMode ? 'Edit tag' : 'New tag'}</PageTitle>
                 </Header>
 
                 {/* Avatar preview row */}
@@ -245,7 +240,7 @@ function AddEditPerson() {
                     <AvatarPreview>
                         {photoPreview
                             ? <AvatarImg src={photoPreview} alt="preview" />
-                            : <AvatarInitials>{initials}</AvatarInitials>
+                            : <AvatarInitial>{initial}</AvatarInitial>
                         }
                     </AvatarPreview>
                     <PhotoUploadBtn
@@ -267,7 +262,6 @@ function AddEditPerson() {
                     />
                 </AvatarSection>
 
-                {/* Drop zone: AI generated */}
                 <DropZone
                     $dragOver={dragOver}
                     onClick={() => document.getElementById('pfp-input').click()}
@@ -289,24 +283,14 @@ function AddEditPerson() {
 
                 <FieldGroup>
                     <Field>
-                        <FieldLabel htmlFor="firstName">First name <Required>*</Required></FieldLabel>
+                        <FieldLabel htmlFor="name">Name <Required>*</Required></FieldLabel>
                         <TextInput
-                            id="firstName"
+                            id="name"
                             type="text"
-                            value={firstName}
-                            onChange={e => setFirstName(e.target.value)}
-                            placeholder="First name"
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            placeholder="Name"
                             autoFocus={!editMode}
-                        />
-                    </Field>
-                    <Field>
-                        <FieldLabel htmlFor="lastName">Last name</FieldLabel>
-                        <TextInput
-                            id="lastName"
-                            type="text"
-                            value={lastName}
-                            onChange={e => setLastName(e.target.value)}
-                            placeholder="Last name"
                         />
                     </Field>
                 </FieldGroup>
@@ -316,13 +300,13 @@ function AddEditPerson() {
                     <Actions>
                         {editMode && (
                             <DeleteBtn type="button" onClick={handleDelete}>
-                                Remove person
+                                Remove tag
                             </DeleteBtn>
                         )}
                         <SubmitBtn type="submit" disabled={!canSubmit() || submitting}>
                             {submitting
                                 ? (editMode ? 'Updating…' : 'Saving…')
-                                : (editMode ? 'Update person' : 'Save person')}
+                                : (editMode ? 'Update tag' : 'Save tag')}
                         </SubmitBtn>
                     </Actions>
                 </SubmitRow>
@@ -331,7 +315,7 @@ function AddEditPerson() {
     )
 }
 
-export default AddEditPerson
+export default AddEditTag
 
 // ── Styled components ─────────────────────────────────────────────────────────
 
@@ -406,7 +390,7 @@ const AvatarImg = styled.img`
     display: block;
 `
 
-const AvatarInitials = styled.span`
+const AvatarInitial = styled.span`
     font-size: 20px;
     font-weight: 600;
     color: var(--accent-highlight);

@@ -1,16 +1,29 @@
 import styled from 'styled-components'
+import PlayButton from './PlayButton'
 
 function TrackRow({ track, index, isSaved, onSave, saving }) {
     const { name, artists = [], album = {} } = track
 
     const artistNames = artists.map(a => a.name).join(', ')
 
+    const songForPlayer = {
+        spotifyUri: track.uri,
+        title: name,
+        artists: artists.map(a => a.name),
+        albumArtUrl: album.images?.[0]?.url,
+    }
+
     return (
         <Row>
             <TrackNum>{index + 1}</TrackNum>
-            {album.images?.[0]?.url && (
-                <AlbumThumb src={album.images[0].url} alt={album.name} />
-            )}
+            <ThumbWrap>
+                {album.images?.[0]?.url && (
+                    <AlbumThumb src={album.images[0].url} alt={album.name} />
+                )}
+                <ThumbPlayOverlay>
+                    <PlayButton song={songForPlayer} size="sm" />
+                </ThumbPlayOverlay>
+            </ThumbWrap>
             <TrackInfo>
                 <TrackName>{name}</TrackName>
                 <TrackArtist>{artistNames}</TrackArtist>
@@ -51,12 +64,33 @@ const TrackNum = styled.span`
     flex-shrink: 0;
 `
 
+const ThumbWrap = styled.div`
+    position: relative;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+`
+
 const AlbumThumb = styled.img`
     width: 40px;
     height: 40px;
     border-radius: 4px;
     object-fit: cover;
-    flex-shrink: 0;
+    display: block;
+`
+
+const ThumbPlayOverlay = styled.div`
+    position: absolute;
+    inset: 0;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+
+    ${Row}:hover & { opacity: 1; }
 `
 
 const TrackInfo = styled.div`

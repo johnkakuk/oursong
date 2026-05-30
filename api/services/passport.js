@@ -58,6 +58,7 @@ const spotifyStrategy = new SpotifyStrategy({
 }, async (accessToken, refreshToken, expires_in, profile, done) => {
     try {
         const tokenExpiry = new Date(Date.now() + expires_in * 1000)
+        const isPremium = profile._json?.product === 'premium'
         // const spotifyEmail = profile.emails?.[0]?.value || profile._json?.email || null
 
         // If a user with this Spotify ID exists, refresh their tokens and return
@@ -67,6 +68,7 @@ const spotifyStrategy = new SpotifyStrategy({
             user.spotifyRefreshToken = refreshToken
             user.spotifyTokenExpiry  = tokenExpiry
             user.displayName         = profile.displayName || null
+            user.isPremiumUser       = isPremium
             await user.save()
             return done(null, user)
         }
@@ -93,6 +95,7 @@ const spotifyStrategy = new SpotifyStrategy({
             spotifyAccessToken:  accessToken,
             spotifyRefreshToken: refreshToken,
             spotifyTokenExpiry:  tokenExpiry,
+            isPremiumUser:       isPremium,
         })
         return done(null, user)
     } catch (error) {

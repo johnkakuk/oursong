@@ -1,6 +1,7 @@
 const User = require('../models/User')
 const jwt = require('jwt-simple')
 const config = require('../config')
+const { getValidToken } = require('../services/spotify')
 
 const tokenForUser = user => {
     const timestamp = new Date().getTime()
@@ -19,10 +20,22 @@ exports.spotifyCallback = (req, res) => {
 // Returns the current authenticated user's profile
 exports.getMe = (req, res) => {
     res.json({
-        id: req.user._id,
-        displayName: req.user.displayName,
-        spotifyId: req.user.spotifyId,
+        id:            req.user._id,
+        displayName:   req.user.displayName,
+        spotifyId:     req.user.spotifyId,
+        isPremiumUser: req.user.isPremiumUser,
     })
+}
+
+// Returns a fresh Spotify access token for the Web Playback SDK
+exports.getSpotifyToken = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id)
+        const token = await getValidToken(user)
+        res.json({ accessToken: token })
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
 }
 
 // Deprecated email-based signin/signup stuff

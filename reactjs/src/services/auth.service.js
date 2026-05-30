@@ -25,6 +25,11 @@ const getToken = () => {
 
 const isAuthenticated = () => Boolean(getToken())
 
-const AuthService = { handleCallback, getMe, logout, getToken, isAuthenticated }
+const getSpotifyToken = async () => {
+    const response = await api.get('/auth/spotify-token')
+    return response.data.accessToken
+}
+
+const AuthService = { handleCallback, getMe, logout, getToken, isAuthenticated, getSpotifyToken }
 
 export default AuthService

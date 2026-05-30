@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import Masonry from 'react-masonry-css'
 import styled from 'styled-components'
 
 import MemoryCard, { NewMemoryCard } from '../components/MemoryCard'
+import PlayButton from '../components/PlayButton'
 import SectionHeader from '../components/SectionHeader'
 import SongsService from '../services/songs.service'
 import { ReactComponent as TrashIcon } from '../images/np_trash_1523231_000000.svg'
@@ -18,6 +19,10 @@ function SongSingle() {
     const [memories, setMemories] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
+    const [isPublished, setIsPublished] = useState(false)
+    const [shareToken, setShareToken] = useState(null)
+    const [copied, setCopied] = useState(false)
+    const copyTimerRef = useRef(null)
 
     useEffect(() => {
         const fetchSong = async () => {
@@ -26,6 +31,8 @@ function SongSingle() {
                 const { memories: songMemories, ...songData } = response.data
                 setSong(songData)
                 setMemories(songMemories || [])
+                setIsPublished(songData.isPublished || false)
+                setShareToken(songData.shareToken || null)
             } catch (err) {
                 setError(err.message || 'Failed to load song')
             } finally {
@@ -34,6 +41,24 @@ function SongSingle() {
         }
         fetchSong()
     }, [id])
+
+    const handlePublish = async () => {
+        try {
+            const { data } = await SongsService.publish(id)
+            setIsPublished(data.isPublished)
+            setShareToken(data.shareToken)
+        } catch {
+            setError('Failed to update sharing')
+        }
+    }
+
+    const handleCopy = () => {
+        const url = `${window.location.origin}/share/${shareToken}`
+        navigator.clipboard.writeText(url)
+        setCopied(true)
+        clearTimeout(copyTimerRef.current)
+        copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
+    }
 
     const handleDelete = async () => {
         if (!window.confirm(`Delete "${song.title}"? This will also delete all its memories.`)) return
@@ -63,10 +88,22 @@ function SongSingle() {
                         <SongDuration>{formatDuration(song.duration)}</SongDuration>
                     )}
                 </SongInfo>
-                <TrashBtn type="button" onClick={handleDelete} title="Delete song">
-                    <Trash />
-                </TrashBtn>
+                <PlayButton song={song} size="lg" />
+                <HeroActions>
+                    <PublishBtn type="button" $active={isPublished} onClick={handlePublish}>
+                        {isPublished ? 'Shared' : 'Share'}
+                    </PublishBtn>
+                    <TrashBtn type="button" onClick={handleDelete} title="Delete song">
+                        <Trash />
+                    </TrashBtn>
+                </HeroActions>
             </SongHero>
+            {isPublished && shareToken && (
+                <ShareBar>
+                    <ShareUrl>{`${window.location.origin}/share/${shareToken}`}</ShareUrl>
+                    <CopyBtn type="button" onClick={handleCopy}>{copied ? 'Copied!' : 'Copy link'}</CopyBtn>
+                </ShareBar>
+            )}
 
             <Divider />
 
@@ -87,7 +124,7 @@ function SongSingle() {
                             onEdit={memory => navigate(`/songs/${id}/memories/${memory._id}/edit`, { state: { memory, song, returnTo: location.pathname } })}
                         />
                     ))}
-                    <NewMemoryCard onClick={() => navigate(`/songs/${id}/memories/new`, { state: { song } })} />
+                    <NewMemoryCard onClick={() => navigate(`/songs/${id}/memories/new`, { state: { song, returnTo: location.pathname } })} />
                 </Masonry>
             </Section>
         </Page>
@@ -184,6 +221,65 @@ const Divider = styled.hr`
 
 const Section = styled.div`
     padding: 2rem;
+`
+
+const HeroActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+`
+
+const PublishBtn = styled.button`
+    height: 34px;
+    padding: 0 14px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid ${p => p.$active ? 'var(--accent)' : 'var(--color-border-secondary)'};
+    background: ${p => p.$active ? 'rgba(59,219,134,0.1)' : 'transparent'};
+    color: ${p => p.$active ? 'var(--accent)' : 'var(--color-text-secondary)'};
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+
+    &:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(59,219,134,0.08);
+    }
+`
+
+const ShareBar = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 2rem 1.5rem;
+    padding: 10px 14px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-border-secondary);
+    background: var(--color-background-secondary);
+`
+
+const ShareUrl = styled.span`
+    flex: 1;
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`
+
+const CopyBtn = styled.button`
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+
+    &:hover { opacity: 0.8; }
 `
 
 const TrashBtn = styled.button`

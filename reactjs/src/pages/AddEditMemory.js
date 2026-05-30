@@ -3,9 +3,9 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import styled from 'styled-components'
 
 import TipTapEditor from '../components/TipTapEditor'
-import PeopleChips from '../components/PeopleChips'
+import TagChips from '../components/TagChips'
 import SongsService from '../services/songs.service'
-import PeopleService from '../services/people.service'
+import TagsService from '../services/tags.service'
 import MemoriesService from '../services/memories.service'
 import { ReactComponent as TrashIcon } from '../images/np_trash_1523231_000000.svg'
 
@@ -68,6 +68,9 @@ function AddEditMemory() {
     const [youtubeUrl, setYoutubeUrl] = useState('')
     const [videoDragOver, setVideoDragOver] = useState(false)
 
+    // Caption (photo/video only)
+    const [caption, setCaption] = useState('')
+
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
 
@@ -102,6 +105,7 @@ function AddEditMemory() {
         setType(memoryData.type || '')
         setBgColor(memoryData.bgColor || '#242424')
         setContent(memoryData.content || '')
+        setCaption(memoryData.caption || '')
         setSelectedPeople(
             (memoryData.people || []).map(p => (typeof p === 'string' ? p : p._id))
         )
@@ -122,7 +126,7 @@ function AddEditMemory() {
     }, [editMode, memoryData])
 
     useEffect(() => {
-        PeopleService.getAll()
+        TagsService.getAll()
             .then(res => setPeople(res.data))
             .catch(() => {})
     }, [])
@@ -205,20 +209,22 @@ function AddEditMemory() {
                     if (photoFile) {
                         payload = new FormData()
                         payload.append('image', photoFile)
+                        payload.append('caption', caption)
                         selectedPeople.forEach(p => payload.append('people', p))
                     } else {
-                        payload = { people: selectedPeople }
+                        payload = { people: selectedPeople, caption }
                     }
                 } else if (type === 'video') {
                     if (videoSource === 'youtube') {
-                        payload = { mediaUrl: youtubeUrl, people: selectedPeople }
+                        payload = { mediaUrl: youtubeUrl, people: selectedPeople, caption }
                     } else if (videoFile) {
                         payload = new FormData()
                         payload.append('video', videoFile)
+                        payload.append('caption', caption)
                         if (videoThumbnail) payload.append('thumbnail', videoThumbnail, 'thumbnail.jpg')
                         selectedPeople.forEach(p => payload.append('people', p))
                     } else {
-                        payload = { people: selectedPeople }
+                        payload = { people: selectedPeople, caption }
                     }
                 }
                 await MemoriesService.update(memoryId, payload)
@@ -246,6 +252,7 @@ function AddEditMemory() {
                     payload = new FormData()
                     payload.append('type', type)
                     payload.append('songId', id)
+                    payload.append('caption', caption)
                     selectedPeople.forEach(p => payload.append('people', p))
                     payload.append('image', photoFile)
                 } else if (type === 'video') {
@@ -255,11 +262,13 @@ function AddEditMemory() {
                             songId: id,
                             mediaUrl: youtubeUrl,
                             people: selectedPeople,
+                            caption,
                         }
                     } else {
                         payload = new FormData()
                         payload.append('type', type)
                         payload.append('songId', id)
+                        payload.append('caption', caption)
                         selectedPeople.forEach(p => payload.append('people', p))
                         payload.append('video', videoFile)
                         if (videoThumbnail) payload.append('thumbnail', videoThumbnail, 'thumbnail.jpg')
@@ -429,10 +438,16 @@ function AddEditMemory() {
                             handlePhotoFile(e.dataTransfer.files[0])
                         }}
                     >
-                        {photoPreview
-                            ? <PhotoPreview src={photoPreview} alt="preview" />
-                            : <DropLabel>Click or drag a photo here</DropLabel>
-                        }
+                        {photoPreview ? (
+                            <PreviewWrap>
+                                <PhotoPreview src={photoPreview} alt="preview" />
+                                <ReplaceOverlay>
+                                    <DropLabel>Click or drag to replace</DropLabel>
+                                </ReplaceOverlay>
+                            </PreviewWrap>
+                        ) : (
+                            <DropLabel>Click or drag a photo here</DropLabel>
+                        )}
                     </DropZone>
                     <HiddenInput
                         id="photo-input"
@@ -482,12 +497,15 @@ function AddEditMemory() {
                                         {thumbStatus === 'generating' && <ThumbSpinner>⋯</ThumbSpinner>}
                                         {thumbStatus === 'ready'      && <ThumbReady>✓</ThumbReady>}
                                     </FileLabelRow>
+                                ) : editMode && memoryData?.thumbnailUrl ? (
+                                    <PreviewWrap>
+                                        <PhotoPreview src={memoryData.thumbnailUrl} alt="video thumbnail" />
+                                        <ReplaceOverlay>
+                                            <DropLabel>Click or drag to replace the video</DropLabel>
+                                        </ReplaceOverlay>
+                                    </PreviewWrap>
                                 ) : (
-                                    <DropLabel>
-                                        {editMode && !videoFile
-                                            ? 'Click or drag to replace the video file'
-                                            : 'Click or drag a video file here'}
-                                    </DropLabel>
+                                    <DropLabel>Click or drag a video file here</DropLabel>
                                 )}
                             </DropZone>
                             <HiddenInput
@@ -498,19 +516,45 @@ function AddEditMemory() {
                             />
                         </>
                     ) : (
-                        <UrlInput
-                            type="url"
-                            value={youtubeUrl}
-                            onChange={e => setYoutubeUrl(e.target.value)}
-                            placeholder="https://www.youtube.com/watch?v=…"
-                        />
+                        <>
+                            {editMode && getYouTubeId(youtubeUrl) && (
+                                <YtPreviewWrap>
+                                    <PhotoPreview
+                                        src={`https://img.youtube.com/vi/${getYouTubeId(youtubeUrl)}/hqdefault.jpg`}
+                                        alt="YouTube thumbnail"
+                                        style={{ aspectRatio: '16/9' }}
+                                    />
+                                    <ReplaceOverlay>
+                                        <DropLabel>Edit URL below to replace</DropLabel>
+                                    </ReplaceOverlay>
+                                </YtPreviewWrap>
+                            )}
+                            <UrlInput
+                                type="url"
+                                value={youtubeUrl}
+                                onChange={e => setYoutubeUrl(e.target.value)}
+                                placeholder="https://www.youtube.com/watch?v=…"
+                            />
+                        </>
                     )}
                     <Divider />
                 </ContentBlock>
 
+                {(type === 'photo' || type === 'video') && (
+                    <Field>
+                        <FieldLabel>Caption</FieldLabel>
+                        <CaptionTextarea
+                            value={caption}
+                            onChange={e => setCaption(e.target.value)}
+                            placeholder="Add a caption…"
+                            rows={3}
+                        />
+                    </Field>
+                )}
+
                 <Field>
                     <FieldLabel>With</FieldLabel>
-                    <PeopleChips
+                    <TagChips
                         people={people}
                         selected={selectedPeople}
                         onToggle={handleTogglePerson}
@@ -595,6 +639,19 @@ function generateVideoThumbnail(file) {
 
         video.onerror = () => { cleanup(); reject(new Error('Video load failed')) }
     })
+}
+
+function getYouTubeId(url) {
+    try {
+        const u = new URL(url)
+        if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0]
+        if (u.hostname.includes('youtube.com')) {
+            const m = /^\/shorts\/([\w-]+)/.exec(u.pathname)
+            if (m) return m[1]
+            return u.searchParams.get('v')
+        }
+    } catch { /* ignore */ }
+    return null
 }
 
 function isValidYouTubeUrl(url) {
@@ -856,6 +913,28 @@ const PhotoPreview = styled.img`
     object-fit: cover;
 `
 
+const PreviewWrap = styled.div`
+    position: relative;
+    width: 100%;
+`
+
+const YtPreviewWrap = styled.div`
+    position: relative;
+    width: 100%;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    margin-bottom: 1rem;
+`
+
+const ReplaceOverlay = styled.div`
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+`
+
 const FileLabelRow = styled.div`
     display: flex;
     align-items: center;
@@ -916,6 +995,24 @@ const UrlInput = styled.input`
     color: var(--color-text-primary);
     font-size: 14px;
     outline: none;
+
+    &::placeholder { color: var(--color-text-tertiary); }
+    &:focus { border-color: var(--accent-muted); }
+`
+
+const CaptionTextarea = styled.textarea`
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-border-secondary);
+    background: var(--color-background-secondary);
+    color: var(--color-text-primary);
+    font-size: 14px;
+    line-height: 1.55;
+    resize: vertical;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
 
     &::placeholder { color: var(--color-text-tertiary); }
     &:focus { border-color: var(--accent-muted); }

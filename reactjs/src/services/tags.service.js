@@ -1,12 +1,12 @@
 import api from './api'
 
-const getAll = () => api.get('/people')
+const getAll = () => api.get('/tags')
 
-const getOne = (id) => api.get(`/people/${id}`)
+const getOne = (id) => api.get(`/tags/${id}`)
 
 const create = (payload) => {
     const isFormData = payload instanceof FormData
-    return api.post('/people', payload, isFormData
+    return api.post('/tags', payload, isFormData
         ? { headers: { 'Content-Type': 'multipart/form-data' } }
         : {}
     )
@@ -14,14 +14,14 @@ const create = (payload) => {
 
 const update = (id, payload) => {
     const isFormData = payload instanceof FormData
-    return api.put(`/people/${id}`, payload, isFormData
+    return api.put(`/tags/${id}`, payload, isFormData
         ? { headers: { 'Content-Type': 'multipart/form-data' } }
         : {}
     )
 }
 
-const remove = (id) => api.delete(`/people/${id}`)
+const remove = (id) => api.delete(`/tags/${id}`)
 
-const PeopleService = { getAll, getOne, create, update, remove }
+const TagsService = { getAll, getOne, create, update, remove }
 
-export default PeopleService
+export default TagsService

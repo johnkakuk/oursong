@@ -12,7 +12,7 @@ function Nav({ user, onLogout }) {
     }, [])
 
     const initials = user?.displayName
-        ? user.displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+        ? user.displayName[0].toUpperCase()
         : '?'
 
     const handleLoginClick = () => {
@@ -46,7 +46,7 @@ function Nav({ user, onLogout }) {
                     <StyledNavLink to="/search">Search</StyledNavLink>
                     <StyledNavLink to="/songs">Songs</StyledNavLink>
                     <StyledNavLink to="/memories">Memories</StyledNavLink>
-                    <StyledNavLink to="/people">People</StyledNavLink>
+                    <StyledNavLink to="/tags">Tags</StyledNavLink>
                 </NavLinks>
 
                 <NavBottom>

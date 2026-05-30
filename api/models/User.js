@@ -10,7 +10,6 @@ const mongoose = require('mongoose')
 const userSchema = new mongoose.Schema({
     email: {
         type: String,
-        unique: true,
         sparse: true,
         lowercase: true,
         // validate: [validateEmail, 'Please fill a valid email address']
@@ -30,6 +29,7 @@ const userSchema = new mongoose.Schema({
     spotifyAccessToken:  { type: String },
     spotifyRefreshToken: { type: String },
     spotifyTokenExpiry:  { type: Date   },
+    isPremiumUser:       { type: Boolean, default: false },
 }, { timestamps: true })
 
 // userSchema.pre('save', function(next) {

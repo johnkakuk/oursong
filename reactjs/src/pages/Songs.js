@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import styled from 'styled-components'
 
 import SectionHeader from '../components/SectionHeader'
+import { NewSongCard } from '../components/SongCard'
 import SongsService from '../services/songs.service'
 
 function Songs() {
@@ -42,6 +43,7 @@ function Songs() {
                                     </CardBody>
                                 </SongCard>
                             ))}
+                            <NewSongCard onClick={() => navigate('/search')} />
                         </Grid>
                     )
                 }

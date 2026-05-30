@@ -27,4 +27,7 @@ router.get(
 // Returns current user's profile (used by frontend on load)
 router.get('/me', passport.authenticate('jwt', { session: false }), authentication_controller.getMe)
 
+// Returns a fresh Spotify access token for the Web Playback SDK
+router.get('/spotify-token', passport.authenticate('jwt', { session: false }), authentication_controller.getSpotifyToken)
+
 module.exports = router;
