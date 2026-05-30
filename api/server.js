@@ -8,6 +8,7 @@ const fileUpload = require('express-fileupload');
 const session = require('express-session');
 
 const app = express();
+app.set('trust proxy', 1)
 app.use(cors());
 app.use(fileUpload());
 
