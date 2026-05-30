@@ -54,8 +54,9 @@ const jwtStrategy = new JwtStrategy(jwtOptions, async (payload, done) => {
 const spotifyStrategy = new SpotifyStrategy({
     clientID:     process.env.SPOTIFY_CLIENT_ID,
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-    callbackURL:  '/api/v1/auth/spotify/callback',
+    callbackURL:  `${process.env.API_BASE_URL}/api/v1/auth/spotify/callback`,
 }, async (accessToken, refreshToken, expires_in, profile, done) => {
+    console.log('[spotify] callback fired. profile id:', profile?.id)
     try {
         const tokenExpiry = new Date(Date.now() + expires_in * 1000)
         const isPremium = profile._json?.product === 'premium'
