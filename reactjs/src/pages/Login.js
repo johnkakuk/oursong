@@ -2,8 +2,6 @@ import styled from 'styled-components'
 import noteIcon from '../images/np_notes_2825949_000000.svg'
 
 function Login() {
-    alert('Login page rendered')
-
     const handleConnect = () => {
         const base = process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : ''
         window.location.href = `${base}/api/v1/auth/spotify`

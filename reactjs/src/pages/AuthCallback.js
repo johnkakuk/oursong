@@ -9,7 +9,6 @@ function AuthCallback({ onAuthSuccess }) {
 
     useEffect(() => {
         const token = searchParams.get('token')
-        alert('AuthCallback reached. Token present: ' + Boolean(token))
 
         if (!token) {
             navigate('/login', { replace: true })
@@ -17,16 +16,13 @@ function AuthCallback({ onAuthSuccess }) {
         }
 
         AuthService.handleCallback(token)
-        alert('Token stored in localStorage.')
 
         AuthService.getMe()
             .then(user => {
-                alert('getMe() succeeded. User: ' + JSON.stringify(user))
                 onAuthSuccess(user)
                 navigate('/', { replace: true })
             })
-            .catch((err) => {
-                alert('getMe() failed. Error: ' + (err?.response?.status || err?.message || 'unknown'))
+            .catch(() => {
                 navigate('/', { replace: true })
             })
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
