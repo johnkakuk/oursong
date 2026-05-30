@@ -14,7 +14,7 @@ const tokenForUser = user => {
 // Called after successful Spotify OAuth — issues JWT and redirects to React app
 exports.spotifyCallback = (req, res) => {
     const token = tokenForUser(req.user)
-    res.redirect(`${process.env.SPOTIFY_FRONTEND_REDIRECT}?token=${token}`)
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`)
 }
 
 // Returns the current authenticated user's profile
