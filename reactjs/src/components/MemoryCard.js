@@ -188,7 +188,7 @@ function TextMemory({ memory, onEdit, hideSong }) {
         <Card style={cardStyle}>
             <TextTopBar>
                 <SongLabel song={songId} hideSong={hideSong} />
-                {songId && <PlayButton song={songId} size="sm" variant="icon" />}
+                {!hideSong && songId && <PlayButton song={songId} size="sm" variant="icon" />}
             </TextTopBar>
             <TextInner>
                 <TextContent
